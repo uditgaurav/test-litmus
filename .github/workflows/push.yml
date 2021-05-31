@@ -244,8 +244,8 @@ jobs:
             source env-vars
             cd litmus-portal/frontend
             timestamp=`date "+%s"`
-            docker manifest create ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMAGE_TAG} \
+            docker manifest create ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMG_TAG} \
             --amend ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:amd64 \
             --amend ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:arm64 \
-            docker manifest push ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMAGE_TAG}
+            docker manifest push ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMG_TAG}
           fi
