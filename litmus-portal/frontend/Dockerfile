@@ -23,13 +23,13 @@ COPY package.json ./
 COPY package-lock.json ./
 
 # Installs all node packages except Cypress
-RUN CYPRESS_INSTALL_BINARY=0 yarn install
+RUN CYPRESS_INSTALL_BINARY=0 npm ci
 
 # Copies everything over to Docker environment
 COPY . ./
 
 # Finally runs the application
-RUN yarn run build
+RUN npm run build
 
 # Stage 2: the production environment
 FROM nginxinc/nginx-unprivileged:1.18-alpine
