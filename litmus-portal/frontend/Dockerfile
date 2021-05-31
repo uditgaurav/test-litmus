@@ -23,7 +23,7 @@ COPY package.json ./
 COPY package-lock.json ./
 
 # Installs all node packages except Cypress
-RUN set npm_config_arch=arm64 && npm ci
+RUN set npm_config_arch=${TARGETARCH} && npm ci
 
 # Copies everything over to Docker environment
 COPY . ./
