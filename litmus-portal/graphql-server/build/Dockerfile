@@ -7,6 +7,7 @@ ARG TARGETPLATFORM
 
 ADD . /gql-server
 WORKDIR /gql-server
+
 RUN export GOOS=$(echo ${TARGETPLATFORM} | cut -d / -f1) && \
     export GOARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2)
 

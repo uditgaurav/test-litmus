@@ -3,8 +3,14 @@ FROM golang:1.14 AS builder
 
 LABEL maintainer="LitmusChaos"
 
+ARG TARGETPLATFORM
+
 ADD . /event-tracker
 WORKDIR /event-tracker
+
+RUN export GOOS=$(echo ${TARGETPLATFORM} | cut -d / -f1) && \
+    export GOARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2)
+
 RUN CGO_ENABLED=0 go build -o /output/event-tracker -v
 
 

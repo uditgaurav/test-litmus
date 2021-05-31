@@ -1,10 +1,15 @@
 # BUILD STAGE
 FROM golang:1.14 AS builder
 
+ARG TARGETPLATFORM
+
 ADD . /auth-server
 WORKDIR /auth-server
-RUN CGO_ENABLED=0 go build -o /output/server -v ./src/
 
+RUN export GOOS=$(echo ${TARGETPLATFORM} | cut -d / -f1) && \
+    export GOARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2)
+
+RUN CGO_ENABLED=0 go build -o /output/server -v ./src/
 
 # DEPLOY STAGE
 FROM alpine:latest
@@ -19,4 +24,3 @@ USER 1001
 CMD ["./server"]
 
 EXPOSE 3000
-
