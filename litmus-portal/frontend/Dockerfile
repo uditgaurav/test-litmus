@@ -1,6 +1,6 @@
 # Docker Image which is used as foundation to create
 # a custom Docker Image with this Dockerfile
-FROM node:12.18.0 as react-build
+FROM node:buster as react-build
 
 # Add Maintainer Info
 LABEL maintainer="LitmusChaos"
