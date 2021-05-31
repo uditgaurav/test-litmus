@@ -226,7 +226,7 @@ jobs:
           source env-vars
           cd litmus-portal/frontend
           timestamp=`date "+%s"`
-          docker build . -f Dockerfile -t ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMAGE_TAG} --build-arg REACT_APP_KB_CHAOS_VERSION=${IMG_TAG} --build-arg TARGETARCH=${IMAGE_TAG} --build-arg REACT_APP_HUB_BRANCH_NAME="v1.13.x"
+          docker build . -f Dockerfile -t ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMAGE_TAG} --build-arg TARGETARCH=${IMAGE_TAG} --build-arg REACT_APP_KB_CHAOS_VERSION=${IMG_TAG} --build-arg REACT_APP_HUB_BRANCH_NAME="v1.13.x"
           docker push ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMAGE_TAG}
 
   docker-build-and-push-frontend:
