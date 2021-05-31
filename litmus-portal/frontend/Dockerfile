@@ -5,12 +5,11 @@ FROM node:12.18.0 as react-build
 # Add Maintainer Info
 LABEL maintainer="LitmusChaos"
 
-ARG TARGETARCH
+ARG ARCH
 ARG REACT_APP_KB_CHAOS_VERSION
 ARG REACT_APP_BUILD_TIME
 ARG REACT_APP_HUB_BRANCH_NAME
 
-ENV ARCH=${TARGETARCH}
 # Checking environment variables
 RUN env
 
@@ -23,7 +22,7 @@ COPY package.json ./
 COPY package-lock.json ./
 
 # Installs all node packages except Cypress
-RUN set npm_config_arch=${TARGETARCH} && npm ci
+RUN npm ci
 
 # Copies everything over to Docker environment
 COPY . ./
