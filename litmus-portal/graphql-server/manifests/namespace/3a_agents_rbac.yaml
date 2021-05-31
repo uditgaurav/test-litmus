@@ -1,0 +1,236 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: Role
+metadata:
+  name: subscriber-role
+  namespace: #{AGENT-NAMESPACE}
+  labels:
+    name: subscriber-role
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - create
+      - delete
+      - update
+  - apiGroups:
+      - litmuschaos.io
+    resources:
+      - chaosengines
+      - chaosresults
+    verbs:
+      - get
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - workflows
+      - workflows/finalizers
+      - workflowtemplates
+      - workflowtemplates/finalizers
+      - cronworkflows
+      - cronworkflows/finalizers
+      - rollouts
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - delete
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - pods/log
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - statefulsets
+      - daemonsets
+    verbs:
+      - get
+      - list
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - namespaces
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - apps.openshift.io
+    resources:
+      - deploymentconfigs
+    verbs:
+      - get
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: subscriber-role-binding
+  namespace: #{AGENT-NAMESPACE}
+subjects:
+  - kind: ServiceAccount
+    name: #{SUBSCRIBER-SERVICE-ACCOUNT}
+    namespace: #{AGENT-NAMESPACE}
+roleRef:
+  kind: Role
+  name: subscriber-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: litmus-admin
+  namespace: #{AGENT-NAMESPACE}
+  labels:
+    name: litmus-admin
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: Role
+metadata:
+  name: litmus-admin
+  namespace: #{AGENT-NAMESPACE}
+  labels:
+    name: litmus-admin
+rules:
+- apiGroups: [""]
+  resources: ["replicationcontrollers","secrets"]
+  verbs: ["get","list"]
+- apiGroups: ["apps.openshift.io"]
+  resources: ["deploymentconfigs"]
+  verbs: ["get","list"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "daemonsets", "replicasets", "statefulsets"]
+  verbs: ["get","list","update"]
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["get","list","create","deletecollection"]
+- apiGroups: ["argoproj.io"]
+  resources: ["rollouts"]
+  verbs: ["get","list"]
+- apiGroups: [""]
+  resources: ["pods","pods/exec","configmaps","events","services"]
+  verbs: ["get","create","update","patch","delete","list","watch","deletecollection"]
+- apiGroups: ["litmuschaos.io"]
+  resources: ["chaosengines","chaosexperiments","chaosresults"]
+  verbs: ["get","create","update","patch","delete","list","watch","deletecollection"]
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: litmus-admin
+  namespace: #{AGENT-NAMESPACE}
+  labels:
+    name: litmus-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: litmus-admin
+subjects:
+  - kind: ServiceAccount
+    name: litmus-admin
+    namespace: #{AGENT-NAMESPACE}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argo-chaos
+  namespace: #{AGENT-NAMESPACE}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: chaos-role
+  namespace: #{AGENT-NAMESPACE}
+rules:
+  - apiGroups:
+      - "*"
+    resources:
+      - "*"
+    verbs:
+      - "*"
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: chaos-role-binding
+  namespace: #{AGENT-NAMESPACE}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: chaos-role
+subjects:
+  - kind: ServiceAccount
+    name: argo-chaos
+    namespace: #{AGENT-NAMESPACE}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: event-tracker-sa
+  namespace: #{AGENT-NAMESPACE}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  creationTimestamp: null
+  name: event-tracker-role
+rules:
+  - apiGroups:
+      - eventtracker.litmuschaos.io
+    resources:
+      - eventtrackerpolicies
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - eventtracker.litmuschaos.io
+    resources:
+      - eventtrackerpolicies/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - ""
+      - extensions
+      - apps
+    resources:
+      - deployments
+      - daemonsets
+      - statefulsets
+      - pods
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: event-tracker-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: event-tracker-role
+subjects:
+  - kind: ServiceAccount
+    name: event-tracker-sa
+    namespace: #{AGENT-NAMESPACE}
