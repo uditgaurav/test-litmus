@@ -201,6 +201,11 @@ jobs:
 
   docker-build-and-push-frontend:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+       include:
+         - tag: amd64
+         - tag: arm64
     needs:
       - get-envs
       - frontend-checks
@@ -220,7 +225,13 @@ jobs:
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}           
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Push frontend intermediate docker images
+        env:
+          MID_IMAGE_TAG: ${{ matrix.tag }}
+        run: |
+          docker build . -f Dockerfile -t ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${MID_IMAGE_TAG} --build-arg REACT_APP_KB_CHAOS_VERSION=${MID_IMAGE_TAG} --build-arg TARGETARCH=${MID_IMAGE_TAG} --build-arg REACT_APP_BUILD_TIME="$timestamp" --build-arg REACT_APP_HUB_BRANCH_NAME="v1.13.x"
+          docker push ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${MID_IMAGE_TAG}
       - name: Push frontend docker image
         shell: bash
         run: |
@@ -231,6 +242,7 @@ jobs:
             source env-vars
             cd litmus-portal/frontend
             timestamp=`date "+%s"`
-            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-            docker buildx build --file Dockerfile --progress plane --push --no-cache --platform linux/arm64,linux/amd64 --tag ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMG_TAG} --build-arg REACT_APP_KB_CHAOS_VERSION=${IMG_TAG} --build-arg REACT_APP_BUILD_TIME="$timestamp" --build-arg REACT_APP_HUB_BRANCH_NAME="v1.13.x" .
+            docker manifest create ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMAGE_TAG} \
+            --amend ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:amd64 \
+            --amend ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:arm64 \
           fi

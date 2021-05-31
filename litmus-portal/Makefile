@@ -97,5 +97,4 @@ docker.buildx:
 		docker buildx create --name multibuilder;\
 		docker buildx inspect multibuilder --bootstrap;\
 		docker buildx use multibuilder;\
-	    docker run --rm --privileged multiarch/qemu-user-static --reset -p yes;\
 	fi
