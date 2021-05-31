@@ -204,8 +204,7 @@ jobs:
     strategy:
       matrix:
        include:
-         - tag: amd64
-         - tag: arm64
+         - tag: [amd64,arm64]
     needs:
       - get-envs
       - frontend-checks
@@ -223,12 +222,12 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Push frontend intermediate docker images
         env:
-          MID_IMAGE_TAG: ${{ matrix.tag }}
+          IMAGE_TAG: ${{ matrix.tag }}
         run: |
           source env-vars
           cd litmus-portal/frontend
-          docker build . -f Dockerfile -t ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${MID_IMAGE_TAG} --build-arg REACT_APP_KB_CHAOS_VERSION=${MID_IMAGE_TAG} --build-arg TARGETARCH=${MID_IMAGE_TAG} --build-arg REACT_APP_HUB_BRANCH_NAME="v1.13.x"
-          docker push ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${MID_IMAGE_TAG}
+          docker build . -f Dockerfile -t ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMAGE_TAG} --build-arg REACT_APP_KB_CHAOS_VERSION=${IMG_TAG} --build-arg TARGETARCH=${IMAGE_TAG} --build-arg REACT_APP_HUB_BRANCH_NAME="v1.13.x"
+          docker push ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMAGE_TAG}
 
   docker-build-and-push-frontend:
     runs-on: ubuntu-latest
