@@ -5,10 +5,14 @@ FROM node:12.18.0 as react-build
 # Add Maintainer Info
 LABEL maintainer="LitmusChaos"
 
-ARG TARGETARCH
+ARG TARGETPLATFORM
 ARG REACT_APP_KB_CHAOS_VERSION
 ARG REACT_APP_BUILD_TIME
 ARG REACT_APP_HUB_BRANCH_NAME
+
+RUN export OS=$(echo ${TARGETPLATFORM} | cut -d / -f1) && \
+    export ARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2)
+RUN if [ "$ARCH" == "amd64" ]; then export ARCH="x64"; fi
 
 # Checking environment variables
 RUN env
@@ -22,7 +26,7 @@ COPY package.json ./
 COPY package-lock.json ./
 
 # Installs all node packages except Cypress
-RUN npm ci
+RUN npm ci --arch=${ARCH} --platform=${OS}
 
 # Copies everything over to Docker environment
 COPY . ./
