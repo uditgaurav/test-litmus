@@ -10,6 +10,7 @@ ARG REACT_APP_KB_CHAOS_VERSION
 ARG REACT_APP_BUILD_TIME
 ARG REACT_APP_HUB_BRANCH_NAME
 
+ENV ARCH=${TARGETARCH}
 # Checking environment variables
 RUN env
 
@@ -22,13 +23,13 @@ COPY package.json ./
 COPY package-lock.json ./
 
 # Installs all node packages except Cypress
-RUN CYPRESS_INSTALL_BINARY=0 npm install
+RUN CYPRESS_INSTALL_BINARY=0 yarn install
 
 # Copies everything over to Docker environment
 COPY . ./
 
 # Finally runs the application
-RUN npm run build
+RUN yarn run build
 
 # Stage 2: the production environment
 FROM nginxinc/nginx-unprivileged:1.18-alpine
