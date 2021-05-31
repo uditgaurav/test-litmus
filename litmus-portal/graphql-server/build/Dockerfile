@@ -3,8 +3,13 @@ FROM golang:1.14 AS builder
 
 LABEL maintainer="LitmusChaos"
 
+ARG TARGETPLATFORM
+
 ADD . /gql-server
 WORKDIR /gql-server
+RUN export GOOS=$(echo ${TARGETPLATFORM} | cut -d / -f1) && \
+    export GOARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2)
+
 RUN CGO_ENABLED=0 go build -o /output/server -v
 
 ## DEPLOY STAGE
