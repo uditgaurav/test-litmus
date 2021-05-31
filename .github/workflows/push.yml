@@ -91,7 +91,7 @@ jobs:
             source env-vars
             cd litmus-portal && make docker.buildx
             cd graphql-server
-            docker buildx build --file graphql-server/build/Dockerfile --progress plane --push --no-cache --platform linux/arm64,linux/amd64 --tag uditgaurav/${GRAPHQL_SERVER_IMAGE}:${IMG_TAG} .
+            docker buildx build --file build/Dockerfile --progress plane --push --no-cache --platform linux/arm64,linux/amd64 --tag uditgaurav/${GRAPHQL_SERVER_IMAGE}:${IMG_TAG} .
           fi
 
   docker-build-and-push-authentication-server:
