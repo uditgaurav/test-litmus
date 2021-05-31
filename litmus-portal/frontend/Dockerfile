@@ -1,6 +1,6 @@
 # Docker Image which is used as foundation to create
 # a custom Docker Image with this Dockerfile
-FROM node:buster as react-build
+FROM lts-alpine3.13 as react-build
 
 # Add Maintainer Info
 LABEL maintainer="LitmusChaos"
@@ -26,7 +26,7 @@ COPY package.json ./
 COPY package-lock.json ./
 
 # Installs all node packages except Cypress
-RUN npm ci
+RUN npm ci --arch=${ARCH} --platform=${OS}
 
 # Copies everything over to Docker environment
 COPY . ./
