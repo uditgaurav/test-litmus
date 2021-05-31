@@ -203,8 +203,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-       include:
-         - tag: [amd64,arm64]
+        tag: [amd64,arm64]
     needs:
       - get-envs
       - frontend-checks
@@ -226,6 +225,7 @@ jobs:
         run: |
           source env-vars
           cd litmus-portal/frontend
+          timestamp=`date "+%s"`
           docker build . -f Dockerfile -t ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMAGE_TAG} --build-arg REACT_APP_KB_CHAOS_VERSION=${IMG_TAG} --build-arg TARGETARCH=${IMAGE_TAG} --build-arg REACT_APP_HUB_BRANCH_NAME="v1.13.x"
           docker push ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMAGE_TAG}
 
@@ -254,10 +254,8 @@ jobs:
           then
             source env-vars
             cd litmus-portal/frontend
-            timestamp=`date "+%s"`
             docker manifest create ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMG_TAG} \
             --amend ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:amd64 \
             --amend ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:arm64
             docker manifest push ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMG_TAG}
           fi
-
