@@ -26,7 +26,7 @@ COPY package.json ./
 COPY package-lock.json ./
 
 # Installs all node packages except Cypress
-RUN npm ci --arch=${ARCH} --platform=${OS}
+RUN npm ci
 
 # Copies everything over to Docker environment
 COPY . ./
