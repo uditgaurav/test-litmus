@@ -230,6 +230,8 @@ jobs:
         env:
           MID_IMAGE_TAG: ${{ matrix.tag }}
         run: |
+          source env-vars
+          cd litmus-portal/frontend
           docker build . -f Dockerfile -t ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${MID_IMAGE_TAG} --build-arg REACT_APP_KB_CHAOS_VERSION=${MID_IMAGE_TAG} --build-arg TARGETARCH=${MID_IMAGE_TAG} --build-arg REACT_APP_HUB_BRANCH_NAME="v1.13.x"
           docker push ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${MID_IMAGE_TAG}
       - name: Push frontend docker image
