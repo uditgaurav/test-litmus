@@ -23,7 +23,7 @@ COPY package.json ./
 COPY package-lock.json ./
 
 # Installs all node packages except Cypress
-RUN npm i -g @cloudflare/wrangler@1.16.1
+RUN set npm_config_arch=arm64 && npm ci
 
 # Copies everything over to Docker environment
 COPY . ./
