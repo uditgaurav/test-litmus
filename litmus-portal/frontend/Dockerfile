@@ -1,6 +1,6 @@
 # Docker Image which is used as foundation to create
 # a custom Docker Image with this Dockerfile
-FROM lts-alpine3.13 as react-build
+FROM node:12.18.0 as react-build
 
 # Add Maintainer Info
 LABEL maintainer="LitmusChaos"
@@ -9,10 +9,6 @@ ARG TARGETPLATFORM
 ARG REACT_APP_KB_CHAOS_VERSION
 ARG REACT_APP_BUILD_TIME
 ARG REACT_APP_HUB_BRANCH_NAME
-
-RUN export OS=$(echo ${TARGETPLATFORM} | cut -d / -f1) && \
-    export ARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2)
-RUN if [ "$ARCH" == "amd64" ]; then export ARCH="x64"; fi
 
 # Checking environment variables
 RUN env
@@ -26,7 +22,7 @@ COPY package.json ./
 COPY package-lock.json ./
 
 # Installs all node packages except Cypress
-RUN npm ci --arch=${ARCH} --platform=${OS}
+RUN npm ci
 
 # Copies everything over to Docker environment
 COPY . ./
