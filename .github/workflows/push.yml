@@ -32,6 +32,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+        
       - shell: bash
         run: |
           img_tag=""
@@ -53,6 +54,7 @@ jobs:
           echo export FRONTEND_IMAGE="litmusportal-frontend" >> env-vars
           echo export SUBSCRIBER_IMAGE="litmusportal-subscriber" >> env-vars
           echo export EVENT_TRACKER="litmusportal-event-tracker" >> env-vars
+
       - name: Uploading envs
         uses: actions/upload-artifact@v2
         with:
@@ -67,15 +69,18 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
       - name: Downloading image artficate
         uses: actions/download-artifact@v2
         with:
           name: env_artifact
+
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v1
         with:
           version: latest
+
       - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
@@ -83,17 +88,13 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Set ENVs for graphql server docker image
+        id: vars
         shell: bash
         run: |
-          branch=${GITHUB_REF#refs/*/}
-          array=(`echo ${GITHUB_REF} | sed 's/\//\n/g'`)
-          if [ $branch == "master" ] || [ ${array[1]} == "tags" ] || [[ $branch =~ ^v[0-9]*.[0-9]*.x$ ]]
-          then
-            source env-vars
-            cd litmus-portal && make docker.buildx
-            echo "##[set-output name=tag;]$(echo ${IMG_TAG})"
-            docker buildx build --file build/Dockerfile --progress plane --push --no-cache --platform linux/arm64,linux/amd64 --tag ${{ secrets.REPONAME }}/${GRAPHQL_SERVER_IMAGE}:${IMG_TAG} .
-          fi
+          source env-vars
+          cd litmus-portal && make docker.buildx
+          echo "##[set-output name=tag;]$(echo ${IMG_TAG})"
+
       - name: Build & push graphql server docker image
         uses: docker/build-push-action@v2
         with:
@@ -102,7 +103,7 @@ jobs:
           push: true
           platforms: linux/arm64, linux/amd64
           tags: |
-            ${{ steps.docker_meta.outputs.tags }}     
+            ${{ steps.vars.outputs.tag }}
 
   docker-build-and-push-authentication-server:
     runs-on: ubuntu-latest
@@ -112,32 +113,41 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
       - name: Downloading image artficate
         uses: actions/download-artifact@v2
         with:
           name: env_artifact
+
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v1
         with:
           version: latest
+
       - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Push auth server docker image
+
+      - name: Set ENVs for auth server docker image
+        id: vars
         shell: bash
         run: |
-          branch=${GITHUB_REF#refs/*/}
-          array=(`echo ${GITHUB_REF} | sed 's/\//\n/g'`)
-          if [ $branch == "master" ] || [ ${array[1]} == "tags" ] || [[ $branch =~ ^v[0-9]*.[0-9]*.x$ ]]
-          then
-            source env-vars
-            cd litmus-portal && make docker.buildx
-            cd authentication
-            docker buildx build --file Dockerfile --progress plane --push --no-cache --platform linux/arm64,linux/amd64 --tag ${{ secrets.REPONAME }}/${AUTHENTICATION_SERVER_IMAGE}:${IMG_TAG} .
-          fi
+          source env-vars
+          cd litmus-portal && make docker.buildx
+          echo "##[set-output name=tag;]$(echo ${IMG_TAG})"
+
+      - name: Build & auth server docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./litmus-portal/authentication/Dockerfile
+          push: true
+          platforms: linux/arm64, linux/amd64
+          tags: |
+            ${{ steps.vars.outputs.tag }}
 
   docker-build-and-push-subscriber:
     runs-on: ubuntu-latest
@@ -147,32 +157,41 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
       - name: Downloading image artficate
         uses: actions/download-artifact@v2
         with:
           name: env_artifact
+
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v1
         with:
           version: latest
+
       - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}          
-      - name: Push subscriber docker image
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set ENVs for subscriber docker image
+        id: vars
         shell: bash
         run: |
-          branch=${GITHUB_REF#refs/*/}
-          array=(`echo ${GITHUB_REF} | sed 's/\//\n/g'`)
-          if [ $branch == "master" ] || [ ${array[1]} == "tags" ] || [[ $branch =~ ^v[0-9]*.[0-9]*.x$ ]]
-          then
-            source env-vars
-            cd litmus-portal && make docker.buildx
-            cd cluster-agents/subscriber
-            docker buildx build --file build/Dockerfile --progress plane --push --no-cache --platform linux/arm64,linux/amd64 --tag ${{ secrets.REPONAME }}/${SUBSCRIBER_IMAGE}:${IMG_TAG} .            
-          fi
+          source env-vars
+          cd litmus-portal && make docker.buildx
+          echo "##[set-output name=tag;]$(echo ${IMG_TAG})"
+          
+      - name: Build & push subscriber docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./litmus-portal/cluster-agents/subscriber/build/Dockerfile
+          push: true
+          platforms: linux/arm64, linux/amd64
+          tags: |
+            ${{ steps.vars.outputs.tag }}       
 
   docker-build-and-push-event-tracker:
     runs-on: ubuntu-latest
@@ -182,32 +201,41 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
       - name: Downloading image artficate
         uses: actions/download-artifact@v2
         with:
           name: env_artifact
+
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v1
         with:
           version: latest
+
       - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}    
-      - name: Push event tracker docker image
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set ENVs for event tracker docker image
+        id: vars
         shell: bash
         run: |
-          branch=${GITHUB_REF#refs/*/}
-          array=(`echo ${GITHUB_REF} | sed 's/\//\n/g'`)
-          if [ $branch == "master" ] || [ ${array[1]} == "tags" ] || [[ $branch =~ ^v[0-9]*.[0-9]*.x$ ]]
-          then
-            source env-vars
-            cd litmus-portal && make docker.buildx
-            cd cluster-agents/event-tracker
-            docker buildx build --file Dockerfile --progress plane --push --no-cache --platform linux/arm64,linux/amd64 --tag ${{ secrets.REPONAME }}/${EVENT_TRACKER}:${IMG_TAG} .
-          fi
+          source env-vars
+          cd litmus-portal && make docker.buildx
+          echo "##[set-output name=tag;]$(echo ${IMG_TAG})"
+
+      - name: Build & push event tracker docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./litmus-portal/cluster-agents/event-tracker/Dockerfile
+          push: true
+          platforms: linux/arm64, linux/amd64
+          tags: |
+            ${{ steps.vars.outputs.tag }}          
 
   ## TODO: the build time for multiarch frontend image is higher so it is used in release 
   ## builds only need to optimize the build duration and also add it with ci tag
@@ -219,36 +247,51 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
       - name: Downloading image artficate
         uses: actions/download-artifact@v2
         with:
           name: env_artifact
+
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v1
         with:
           version: latest
+
       - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}           
-      - name: Push frontend docker image
+          password: ${{ secrets.DOCKERHUB_TOKEN }}  
+                   
+      - name: Set ENVs and push frontend docker image (amd64)
         shell: bash
         run: |
-          branch=${GITHUB_REF#refs/*/}
-          array=(`echo ${GITHUB_REF} | sed 's/\//\n/g'`)
-          if [ $branch == "master" ] || [ ${array[1]} == "tags" ] || [[ $branch =~ ^v[0-9]*.[0-9]*.x$ ]]
-          then
-            source env-vars
-            cd litmus-portal && make docker.buildx 
-            cd frontend
-            timestamp=`date "+%s"`
-            if [ "$IMG_TAG" == "ci" ]; then \
-               docker build . -f Dockerfile -t ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMG_TAG} --build-arg REACT_APP_KB_CHAOS_VERSION=${IMG_TAG} --build-arg REACT_APP_BUILD_TIME="$timestamp" --build-arg REACT_APP_HUB_BRANCH_NAME="v1.13.x"  --build-arg TARGETARCH=amd64
-               docker push ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMG_TAG}
-            else
-               docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-               docker buildx build --file Dockerfile --progress plane --push --no-cache --platform linux/arm64,linux/amd64 --tag ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMG_TAG} --build-arg REACT_APP_KB_CHAOS_VERSION=${IMG_TAG} --build-arg REACT_APP_BUILD_TIME="$timestamp" --build-arg REACT_APP_HUB_BRANCH_NAME="v1.13.x" .
-            fi
+          source env-vars
+          cd litmus-portal && make docker.buildx 
+          cd frontend
+          timestamp=`date "+%s"`
+          echo "##[set-output name=tag;]$(echo ${IMG_TAG})"
+          echo "##[set-output name=timestamp;]$(echo ${timestamp})"
+          if [ "$IMG_TAG" == "ci" ]; then \
+             docker build . -f Dockerfile -t ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMG_TAG} --build-arg REACT_APP_KB_CHAOS_VERSION=${IMG_TAG} --build-arg REACT_APP_BUILD_TIME="$timestamp" --build-arg REACT_APP_HUB_BRANCH_NAME="v1.13.x"  --build-arg TARGETARCH=amd64
+             docker push ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMG_TAG}
+          else
+             docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
           fi
+
+      - name: Push frontend docker image (arm64)
+        if: ${{ steps.vars.outputs.tag }} != ci
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./litmus-portal/frontend/Dockerfile
+          push: true
+          platforms: linux/arm64, linux/amd64
+          tags: |
+            ${{ steps.vars.outputs.tag }}
+          build-args: |
+            REACT_APP_KB_CHAOS_VERSION=${{ steps.vars.outputs.tag }}
+            REACT_APP_BUILD_TIME=${{ steps.vars.outputs.timestamp }}
+            REACT_APP_HUB_BRANCH_NAME="v1.13.x"
