@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - master
-      - v*
+      - ^v[0-9]*.[0-9]*.x$
     tags:
       - "*"
 jobs:
@@ -63,6 +63,10 @@ jobs:
 
   docker-build-and-push-graphql-server:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: litmus-portal/graphql-server    
     needs:
       - get-envs
       - backend-checks
@@ -92,14 +96,14 @@ jobs:
         shell: bash
         run: |
           source env-vars
-          cd litmus-portal && make docker.buildx
+          cd .. && make docker.buildx
           echo "##[set-output name=tag;]$(echo ${IMG_TAG})"
 
       - name: Build & push graphql server docker image
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: ./litmus-portal/graphql-server/build/Dockerfile
+          file: ./build/Dockerfile
           push: true
           platforms: ${{ secrets.PLATFORMS }}
           tags: |
@@ -107,6 +111,11 @@ jobs:
 
   docker-build-and-push-authentication-server:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: litmus-portal/authentication
+
     needs:
       - get-envs
       - backend-checks
@@ -136,14 +145,14 @@ jobs:
         shell: bash
         run: |
           source env-vars
-          cd litmus-portal && make docker.buildx
+          cd .. && make docker.buildx
           echo "##[set-output name=tag;]$(echo ${IMG_TAG})"
 
       - name: Build & auth server docker image
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: ./litmus-portal/authentication/Dockerfile
+          file: ./Dockerfile
           push: true
           platforms: ${{ secrets.PLATFORMS }}
           tags: |
@@ -151,6 +160,10 @@ jobs:
 
   docker-build-and-push-subscriber:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: litmus-portal/cluster-agents/subscriber
     needs:
       - get-envs
       - backend-checks
@@ -180,21 +193,25 @@ jobs:
         shell: bash
         run: |
           source env-vars
-          cd litmus-portal && make docker.buildx
+          cd ../.. && make docker.buildx
           echo "##[set-output name=tag;]$(echo ${IMG_TAG})"
           
       - name: Build & push subscriber docker image
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: ./litmus-portal/cluster-agents/subscriber/build/Dockerfile
+          file: ./build/Dockerfile
           push: true
           platforms: ${{ secrets.PLATFORMS }}
           tags: |
-            ${{ steps.vars.outputs.tag }}       
+            ${{ steps.vars.outputs.tag }}
 
   docker-build-and-push-event-tracker:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: litmus-portal/cluster-agents/event-tracker
     needs:
       - get-envs
       - backend-checks
@@ -224,14 +241,14 @@ jobs:
         shell: bash
         run: |
           source env-vars
-          cd litmus-portal && make docker.buildx
+          cd ../.. && make docker.buildx
           echo "##[set-output name=tag;]$(echo ${IMG_TAG})"
 
       - name: Build & push event tracker docker image
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: ./litmus-portal/cluster-agents/event-tracker/Dockerfile
+          file: ./Dockerfile
           push: true
           platforms: ${{ secrets.PLATFORMS }}
           tags: |
@@ -241,6 +258,10 @@ jobs:
   ## builds only need to optimize the build duration and also add it with ci tag
   docker-build-and-push-frontend:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: litmus-portal/frontend
     needs:
       - get-envs
       - frontend-checks
@@ -265,11 +286,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}  
                    
-      - name: Set ENVs and push frontend docker image (amd64)
+      - name: Set ENVs and push frontend docker image for ci
         shell: bash
         run: |
           source env-vars
-          cd litmus-portal && make docker.buildx 
+          cd .. && make docker.buildx
           cd frontend
           timestamp=`date "+%s"`
           echo "##[set-output name=tag;]$(echo ${IMG_TAG})"
@@ -279,12 +300,12 @@ jobs:
              docker push ${{ secrets.REPONAME }}/${FRONTEND_IMAGE}:${IMG_TAG}             
           fi
 
-      - name: Push frontend docker image (arm64)
+      - name: Push frontend docker image for release
         if: ${{ steps.vars.outputs.tag }} != ci
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: ./litmus-portal/frontend/Dockerfile
+          file: ./Dockerfile
           push: true
           platforms: ${{ secrets.PLATFORMS }}
           tags: |
