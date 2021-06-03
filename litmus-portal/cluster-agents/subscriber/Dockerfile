@@ -6,25 +6,23 @@ LABEL maintainer="LitmusChaos"
 ARG TARGETOS=linux
 ARG TARGETARCH
 
-ADD . /gql-server
-WORKDIR /gql-server
+ADD . /subscriber
+WORKDIR /subscriber
 
 ENV GOOS=${TARGETOS} \
     GOARCH=${TARGETARCH}
 
-RUN CGO_ENABLED=0 go build -o /output/server -v
+RUN go env
+RUN CGO_ENABLED=0 go build -o /output/subscriber -v
 
-## DEPLOY STAGE
-FROM alpine:latest
+# DEPLOY STAGE
+FROM alpine:3.12.0
 
 LABEL maintainer="LitmusChaos"
 
-COPY --from=builder /output/server /
-COPY --from=builder /gql-server/manifests/. /manifests
+COPY --from=builder /output/subscriber /
 
 RUN addgroup -S litmus && adduser -S -G litmus 1001 
 USER 1001
 
-CMD ["./server"]
-
-EXPOSE 8080
+CMD ["./subscriber"]

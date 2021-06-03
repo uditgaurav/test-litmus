@@ -3,13 +3,14 @@ FROM golang:1.14 AS builder
 
 LABEL maintainer="LitmusChaos"
 
-ARG TARGETPLATFORM
+ARG TARGETOS=linux
+ARG TARGETARCH
 
 ADD . /subscriber
 WORKDIR /subscriber
 
-RUN export GOOS=$(echo ${TARGETPLATFORM} | cut -d / -f1) && \
-    export GOARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2)
+ENV GOOS=${TARGETOS} \
+    GOARCH=${TARGETARCH}
 
 RUN CGO_ENABLED=0 go build -o /output/subscriber -v
 
