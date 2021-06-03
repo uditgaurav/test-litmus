@@ -1,4 +1,4 @@
-# How to Build LitmusPortal Docker Images?
+## How to Build LitmusPortal Docker Images?
 
 The litmusportal runs on top of Kubernetes and is built on a set of docker containers it provides you the flexibility to build a custom image to visualize/check
 your changes. Here are the components for which you can create your custom Docker images from this repository:
@@ -21,7 +21,7 @@ cd litmus/litmus-portal
   for `linux/amd64` and `linux/arm64`builds.
 
 
-## Docker Image Build Tunables
+#### Docker Image Build Tunables
 
 <table>
   <tr>
@@ -62,4 +62,57 @@ cd litmus/litmus-portal
 
 
 
-**_For AMD64 Build_**
+### For AMD64 Build
+
+- To build only amd64 image export the variables from the above table.
+- Run `make push-portal-component-amd64`
+
+- For frontend image export the `timestamp` env with the current time and run `make push-frontend-amd64`.
+
+OR
+
+- Fill the ENVs from the above table in the given command and execute it.
+```bash
+cd ${DIRECTORY}
+docker build . -f Dockerfile -t ${REPONAME}/${IMAGE_NAME}:${IMG_TAG} --build-arg TARGETARCH=amd64
+docker push ${REPONAME}/${IMAGE_NAME}:${IMG_TAG}
+```    
+For frontend image:
+```bash
+cd frontend
+docker build . -f Dockerfile -t $(REPONAME)/$(IMAGE_NAME):${IMG_TAG} --build-arg TARGETARCH=amd64 --build-arg REACT_APP_KB_CHAOS_VERSION=${IMG_TAG} \
+--build-arg REACT_APP_BUILD_TIME="${timestamp}" --build-arg REACT_APP_HUB_BRANCH_NAME="v1.13.x
+
+docker push $(REPONAME)/$(IMAGE_NAME):$(IMG_TAG)
+```
+    
+### For building multiarch images
+
+- For building multiarch image setup [docker buildx](https://docs.docker.com/buildx/working-with-buildx/) in your system. You can also checkout this [blog](https://dev.to/uditgaurav/multiarch-support-in-litmuschaos-34da) for the same.
+
+- Once the docker buildx is setup export the all the target platforms on which you want to deploy your images as a CSV  Like `export PLATFORMS=linux/amd4,linux/arm64` along with the ENVs mentioned 
+  in the above tabe.
+- Build and push the multiarch image using:
+```bash
+make push-portal-component
+```
+
+- For frontend image export the `timestamp` ENV with the current time and run `make push-frontend`.
+
+OR
+
+- Fill the ENVs from the above table in the given command and execute it.
+```bash
+cd ${DIRECTORY}
+docker buildx build -f Dockerfile --progress plane --push --no-cache --platform ${PLATFORMS} -t ${REPONAME}/$(IMAGE_NAME):$(IMG_TAG} .
+```    
+
+For frontend image:
+```bash
+cd ${DIRECTORY}
+docker buildx build . -f Dockerfile --progress plane --push --no-cache --platform ${PLATFORMS} -t ${REPONAME}/${IMAGE_NAME}:${IMG_TAG} \
+--build-arg REACT_APP_KB_CHAOS_VERSION=${IMG_TAG} --build-arg REACT_APP_BUILD_TIME="${timestamp}" --build-arg REACT_APP_HUB_BRANCH_NAME="v1.13.x"
+```
+
+
+
