@@ -38,6 +38,23 @@ func GetCluster(clusterID string) (Cluster, error) {
 	return cluster, nil
 }
 
+// GetAgentDetails takes a agentName and projectID to retrieve the cluster details from the database
+func GetAgentDetails(ctx context.Context, clusterID string, projectID string) (Cluster, error) {
+	query := bson.D{
+		{"project_id", projectID},
+		{"cluster_id", clusterID},
+	}
+
+	var cluster Cluster
+	result, err := mongodb.Operator.Get(ctx, mongodb.ClusterCollection, query)
+	err = result.Decode(&cluster)
+	if err != nil {
+		return Cluster{}, err
+	}
+
+	return cluster, nil
+}
+
 // UpdateCluster takes query and update parameters to update the cluster details in the database
 func UpdateCluster(query bson.D, update bson.D) error {
 	ctx, _ := context.WithTimeout(backgroundContext, 10*time.Second)
@@ -80,5 +97,19 @@ func GetClusterWithProjectID(projectID string, clusterType *string) ([]*Cluster,
 		return []*Cluster{}, err
 	}
 
+	return clusters, nil
+}
+
+// GetClusters returns all the clusters matching the query
+func GetClusters(ctx context.Context, query bson.D) ([]*Cluster, error) {
+	var clusters []*Cluster
+	results, err := mongodb.Operator.List(ctx, mongodb.ClusterCollection, query)
+	if err != nil {
+		return []*Cluster{}, err
+	}
+	err = results.All(ctx, &clusters)
+	if err != nil {
+		return []*Cluster{}, err
+	}
 	return clusters, nil
 }

@@ -1,69 +1,131 @@
 import { gql } from '@apollo/client';
 
-export const WORKFLOW_DETAILS = gql`
-  query workflowDetails($projectID: String!) {
-    getWorkFlowRuns(project_id: $projectID) {
-      workflow_id
-      workflow_name
-      workflow_run_id
-      execution_data
-      project_id
-      cluster_name
-      last_updated
-      cluster_type
-      cluster_id
-    }
-  }
-`;
-
-export const SCHEDULE_DETAILS = gql`
-  query scheduleDetails($projectID: String!) {
-    getScheduledWorkflows(project_id: $projectID) {
-      workflow_id
-      workflow_manifest
-      cronSyntax
-      workflow_name
-      workflow_description
-      weightages {
-        experiment_name
-        weightage
-      }
-      isCustomWorkflow
-      updated_at
-      created_at
-      project_id
-      cluster_id
-      cluster_type
-      cluster_name
-      isRemoved
-    }
-  }
-`;
-
-export const WORKFLOW_LIST_DETAILS = gql`
-  query workflowListDetails($projectID: String!, $workflowIDs: [ID]) {
-    ListWorkflow(project_id: $projectID, workflow_ids: $workflowIDs) {
-      workflow_id
-      workflow_manifest
-      cronSyntax
-      cluster_name
-      workflow_name
-      workflow_description
-      weightages {
-        experiment_name
-        weightage
-      }
-      isCustomWorkflow
-      updated_at
-      created_at
-      project_id
-      cluster_id
-      cluster_type
-      isRemoved
+export const WORKFLOW_DETAILS_WITH_EXEC_DATA = gql`
+  query workflowDetails($workflowRunsInput: GetWorkflowRunsInput!) {
+    getWorkflowRuns(workflowRunsInput: $workflowRunsInput) {
+      total_no_of_workflow_runs
       workflow_runs {
-        execution_data
+        workflow_id
+        workflow_name
         workflow_run_id
+        cluster_name
         last_updated
+        cluster_id
+        phase
+        execution_data
+        resiliency_score
+        isRemoved
+      }
+    }
+  }
+`;
+
+export const WORKFLOW_DETAILS = gql`
+  query workflowDetails($workflowRunsInput: GetWorkflowRunsInput!) {
+    getWorkflowRuns(workflowRunsInput: $workflowRunsInput) {
+      total_no_of_workflow_runs
+      workflow_runs {
+        workflow_run_id
+        workflow_id
+        cluster_name
+        last_updated
+        project_id
+        cluster_id
+        workflow_name
+        cluster_type
+        phase
+        resiliency_score
+        experiments_passed
+        experiments_failed
+        experiments_awaited
+        experiments_stopped
+        experiments_na
+        total_experiments
+        isRemoved
+      }
+    }
+  }
+`;
+
+export const WORKFLOW_RUN_DETAILS = gql`
+  query workflowDetails($workflowRunsInput: GetWorkflowRunsInput!) {
+    getWorkflowRuns(workflowRunsInput: $workflowRunsInput) {
+      total_no_of_workflow_runs
+      workflow_runs {
+        weightages {
+          experiment_name
+          weightage
+        }
+        workflow_id
+        workflow_name
+        workflow_run_id
+        cluster_name
+        execution_data
+        last_updated
+        phase
+        resiliency_score
+        experiments_passed
+        total_experiments
+        isRemoved
+      }
+    }
+  }
+`;
+
+export const WORKFLOW_STATS = gql`
+  query getWorkflowStats(
+    $filter: TimeFrequency!
+    $project_id: ID!
+    $show_workflow_runs: Boolean!
+  ) {
+    getWorkflowStats(
+      filter: $filter
+      project_id: $project_id
+      show_workflow_runs: $show_workflow_runs
+    ) {
+      date
+      value
+    }
+  }
+`;
+
+export const STACKED_BAR_GRAPH = gql`
+  query workflowDetails($workflowRunsInput: GetWorkflowRunsInput!) {
+    getWorkflowRuns(workflowRunsInput: $workflowRunsInput) {
+      total_no_of_workflow_runs
+      workflow_runs {
+        workflow_run_id
+        workflow_name
+        last_updated
+        total_experiments
+        experiments_passed
+        resiliency_score
+      }
+    }
+  }
+`;
+export const WORKFLOW_LIST_DETAILS = gql`
+  query workflowListDetails($workflowInput: ListWorkflowsInput!) {
+    ListWorkflow(workflowInput: $workflowInput) {
+      total_no_of_workflows
+      workflows {
+        workflow_id
+        workflow_manifest
+        cronSyntax
+        cluster_name
+        workflow_name
+        workflow_description
+        weightages {
+          experiment_name
+          weightage
+        }
+        isCustomWorkflow
+        updated_at
+        created_at
+        project_id
+        cluster_id
+        cluster_type
+        isRemoved
       }
     }
   }
@@ -75,6 +137,30 @@ export const WORKFLOW_LIST_DETAILS_FOR_MANIFEST = gql`
       workflow_id
       workflow_manifest
       workflow_name
+    }
+  }
+`;
+
+export const GET_WORKFLOW_RUNS_STATS = gql`
+  query getWorkflowRunStats(
+    $workflowRunStatsRequest: WorkflowRunStatsRequest!
+  ) {
+    getWorkflowRunStats(workflowRunStatsRequest: $workflowRunStatsRequest) {
+      total_workflow_runs
+      succeeded_workflow_runs
+      failed_workflow_runs
+      running_workflow_runs
+      workflow_run_succeeded_percentage
+      workflow_run_failed_percentage
+      average_resiliency_score
+      passed_percentage
+      failed_percentage
+      total_experiments
+      experiments_passed
+      experiments_failed
+      experiments_awaited
+      experiments_stopped
+      experiments_na
     }
   }
 `;
@@ -102,9 +188,8 @@ export const GET_USER = gql`
       company_name
       updated_at
       created_at
-      removed_at
+      deactivated_at
       is_email_verified
-      state
       role
     }
   }
@@ -138,6 +223,7 @@ export const GET_CLUSTER = gql`
       token
       last_workflow_timestamp
       agent_namespace
+      agent_scope
     }
   }
 `;
@@ -150,6 +236,14 @@ export const GET_CLUSTER_LENGTH = gql`
   }
 `;
 
+export const GET_CLUSTER_NAMES = gql`
+  query getClusters($project_id: String!) {
+    getCluster(project_id: $project_id) {
+      cluster_name
+    }
+  }
+`;
+
 export const ALL_USERS = gql`
   query allUsers {
     users {
@@ -157,6 +251,8 @@ export const ALL_USERS = gql`
       name
       username
       email
+      created_at
+      deactivated_at
     }
   }
 `;
@@ -299,8 +395,8 @@ export const LIST_PROJECTS = gql`
         role
         invitation
         joined_at
+        deactivated_at
       }
-      state
       created_at
       updated_at
       removed_at
@@ -319,8 +415,8 @@ export const GET_PROJECT = gql`
         role
         invitation
         joined_at
+        deactivated_at
       }
-      state
       created_at
       updated_at
       removed_at
@@ -358,19 +454,54 @@ export const LIST_DATASOURCE = gql`
   }
 `;
 
+export const LIST_DATASOURCE_OVERVIEW = gql`
+  query listDataSource($projectID: String!) {
+    ListDataSource(project_id: $projectID) {
+      ds_id
+    }
+  }
+`;
+
+export const GET_PORTAL_DASHBOARDS = gql`
+  query getPortalDashboards($projectID: String!, $hubName: String!) {
+    PortalDashboardData(project_id: $projectID, hub_name: $hubName) {
+      name
+      dashboard_data
+    }
+  }
+`;
+
 export const LIST_DASHBOARD = gql`
-  query listDashboard($projectID: String!) {
-    ListDashboard(project_id: $projectID) {
+  query listDashboard($projectID: String!, $clusterID: String, $dbID: String) {
+    ListDashboard(
+      project_id: $projectID
+      cluster_id: $clusterID
+      db_id: $dbID
+    ) {
       db_id
       ds_id
       db_name
-      db_type
       cluster_name
       ds_name
       ds_type
+      ds_url
+      ds_health_status
+      db_type_id
+      db_type_name
+      db_information
+      chaos_event_query_template
+      chaos_verdict_query_template
+      application_metadata_map {
+        namespace
+        applications {
+          kind
+          names
+        }
+      }
       panel_groups {
         panels {
           panel_id
+          created_at
           prom_queries {
             queryid
             prom_query_name
@@ -399,8 +530,62 @@ export const LIST_DASHBOARD = gql`
       refresh_rate
       project_id
       cluster_id
-      created_at
-      updated_at
+      viewed_at
+    }
+  }
+`;
+
+export const LIST_DASHBOARD_OVERVIEW = gql`
+  query listDashboard($projectID: String!, $clusterID: String, $dbID: String) {
+    ListDashboard(
+      project_id: $projectID
+      cluster_id: $clusterID
+      db_id: $dbID
+    ) {
+      db_id
+      db_name
+      db_type_id
+      db_type_name
+      cluster_name
+      cluster_id
+      viewed_at
+      db_information
+      chaos_event_query_template
+      chaos_verdict_query_template
+      application_metadata_map {
+        namespace
+        applications {
+          kind
+          names
+        }
+      }
+      panel_groups {
+        panels {
+          panel_id
+          created_at
+          prom_queries {
+            queryid
+            prom_query_name
+            legend
+            resolution
+            minstep
+            line
+            close_area
+          }
+          panel_options {
+            points
+            grids
+            left_axis
+          }
+          panel_name
+          y_axis_left
+          y_axis_right
+          x_axis_down
+          unit
+        }
+        panel_group_name
+        panel_group_id
+      }
     }
   }
 `;
@@ -454,6 +639,8 @@ export const GET_TEMPLATE_BY_ID = gql`
   query GetManifestTemplate($data: String!) {
     GetTemplateManifestByID(template_id: $data) {
       template_id
+      template_name
+      template_description
       manifest
     }
   }
@@ -476,6 +663,7 @@ export const LIST_IMAGE_REGISTRY = gql`
     ListImageRegistry(project_id: $data) {
       image_registry_info {
         enable_registry
+        is_default
       }
       image_registry_id
     }
@@ -486,6 +674,7 @@ export const GET_IMAGE_REGISTRY = gql`
   query GetImageRegistry($registryid: String!, $projectid: String!) {
     GetImageRegistry(image_registry_id: $registryid, project_id: $projectid) {
       image_registry_info {
+        is_default
         enable_registry
         secret_name
         secret_namespace
@@ -494,6 +683,57 @@ export const GET_IMAGE_REGISTRY = gql`
         image_registry_type
       }
       image_registry_id
+    }
+  }
+`;
+
+export const GET_GLOBAL_STATS = gql`
+  query getGlobalStats($query: UsageQuery!) {
+    UsageQuery(query: $query) {
+      TotalCount {
+        Workflows {
+          Runs
+          ExpRuns
+          Schedules
+        }
+        Agents {
+          Ns
+          Cluster
+          Total
+        }
+        Projects
+        Users
+      }
+    }
+  }
+`;
+
+export const GLOBAL_PROJECT_DATA = gql`
+  query getStats($query: UsageQuery!) {
+    UsageQuery(query: $query) {
+      TotalCount {
+        Projects
+      }
+      Projects {
+        Name
+        Workflows {
+          Schedules
+          ExpRuns
+          Runs
+        }
+        Agents {
+          Total
+          Ns
+          Cluster
+        }
+        Members {
+          Owner {
+            Name
+            Username
+          }
+          Total
+        }
+      }
     }
   }
 `;

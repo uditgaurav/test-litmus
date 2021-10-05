@@ -25,8 +25,9 @@ const TableData: React.FC<TableDataProps> = ({ row, showModal }) => {
 
   // Function to display date in format Do MMM,YYYY Hr:MM AM/PM
   const formatDate = (date: string) => {
-    const day = moment(date).format('Do MMM, YYYY LT');
-    return day;
+    const updated = new Date(parseInt(date, 10) * 1000).toString();
+    const resDate = moment(updated).format('DD MMM YYYY, HH:mm');
+    return resDate;
   };
 
   const [memberDetails, setMemberDetails] = useState<CurrentUserData>();
@@ -45,23 +46,45 @@ const TableData: React.FC<TableDataProps> = ({ row, showModal }) => {
   });
   return (
     <>
-      <TableCell className={classes.firstTC} component="th" scope="row">
+      <TableCell
+        className={`${classes.firstTC} ${
+          row.deactivated_at ? classes.dark : ''
+        }`}
+        component="th"
+        scope="row"
+      >
         <div className={classes.firstCol}>
           <Avatar
             data-cy="avatar"
             alt="User"
-            className={classes.avatarBackground}
+            className={`${
+              row.deactivated_at ? classes.darkBg : classes.avatarBackground
+            } `}
           >
             {userInitials(memberDetails ? memberDetails.username : '')}
           </Avatar>
           {memberDetails ? memberDetails.username : ''}
         </div>
       </TableCell>
-      <TableCell className={classes.otherTC}>{row.role}</TableCell>
-      <TableCell className={classes.otherTC}>
+      <TableCell
+        className={`${classes.otherTC} ${
+          row.deactivated_at ? classes.dark : ''
+        }`}
+      >
+        {row.role}
+      </TableCell>
+      <TableCell
+        className={`${classes.otherTC} ${
+          row.deactivated_at ? classes.dark : ''
+        }`}
+      >
         {memberDetails ? memberDetails.email : ''}
       </TableCell>
-      <TableCell className={classes.otherTC}>
+      <TableCell
+        className={`${classes.otherTC} ${
+          row.deactivated_at ? classes.dark : ''
+        }`}
+      >
         <div className={classes.dateDiv}>
           <img
             className={classes.calIcon}
@@ -73,13 +96,22 @@ const TableData: React.FC<TableDataProps> = ({ row, showModal }) => {
       </TableCell>
 
       {row.role !== Role.owner ? (
-        <TableCell className={classes.otherTC} key={row.user_id}>
+        <TableCell
+          className={`${classes.otherTC} ${
+            row.deactivated_at ? classes.dark : ''
+          }`}
+          key={row.user_id}
+        >
           <IconButton onClick={() => setOpen(true)}>
-            <img alt="delete" src="./icons/deleteBin.svg" height="50" />
+            <img alt="delete" src="./icons/removeMember.svg" height="50" />
           </IconButton>
         </TableCell>
       ) : (
-        <TableCell className={classes.otherTC} />
+        <TableCell
+          className={`${classes.otherTC} ${
+            row.deactivated_at ? classes.dark : ''
+          }`}
+        />
       )}
       {open && (
         <RemoveMemberModal

@@ -22,8 +22,6 @@ interface PaginationData {
 interface InvitedTableProps {
   notAcceptedFilteredData: Member[];
   showModal: () => void;
-  handleOpen: () => void;
-  open: boolean;
 }
 
 const InvitedTable: React.FC<InvitedTableProps> = ({

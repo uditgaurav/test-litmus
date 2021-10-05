@@ -1,30 +1,30 @@
 import { useQuery } from '@apollo/client';
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Backdrop,
-  Typography,
-} from '@material-ui/core';
+import { AppBar, Backdrop, Typography } from '@material-ui/core';
+import useTheme from '@material-ui/core/styles/useTheme';
+import Tabs from '@material-ui/core/Tabs';
 import moment from 'moment';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import BackButton from '../../../components/Button/BackButton';
 import Loader from '../../../components/Loader';
+import { StyledTab, TabPanel } from '../../../components/Tabs';
 import Center from '../../../containers/layouts/Center';
-import Scaffold from '../../../containers/layouts/Scaffold';
+import Wrapper from '../../../containers/layouts/Wrapper';
 import {
   GET_CHARTS_DATA,
   GET_HUB_STATUS,
   GET_PREDEFINED_WORKFLOW_LIST,
 } from '../../../graphql';
 import { Chart, Charts, HubStatus } from '../../../models/redux/myhub';
+import useActions from '../../../redux/actions';
+import * as TabActions from '../../../redux/actions/tabs';
+import { RootState } from '../../../redux/reducers';
 import { getProjectID, getProjectRole } from '../../../utils/getSearchParams';
 import ChartCard from './chartCard';
 import HeaderSection from './headerSection';
 import useStyles from './styles';
-import BackButton from '../../../components/Button/BackButton';
 
 interface ChartName {
   ChaosName: string;
@@ -36,6 +36,12 @@ interface URLParams {
 }
 
 const MyHub: React.FC = () => {
+  // Redux states for tab
+  const workflowTabValue = useSelector(
+    (state: RootState) => state.tabNumber.myhub
+  );
+  const tabs = useActions(TabActions);
+
   // Get Parameters from URL
   const paramData: URLParams = useParams();
   const projectID = getProjectID();
@@ -44,6 +50,7 @@ const MyHub: React.FC = () => {
     variables: { data: projectID },
     fetchPolicy: 'cache-and-network',
   });
+  const theme = useTheme();
 
   // Filter the selected MyHub
   const UserHub = hubDetails?.getHubStatus.filter((myHub) => {
@@ -99,13 +106,8 @@ const MyHub: React.FC = () => {
     return 'Date not available';
   };
 
-  const [expanded, setExpanded] = React.useState<string | false>('panel2');
-
-  const handleChange = (panel: string) => (
-    event: React.ChangeEvent<{}>,
-    newExpanded: boolean
-  ) => {
-    setExpanded(newExpanded ? panel : false);
+  const handleTabChange = (event: React.ChangeEvent<{}>, newValue: number) => {
+    tabs.changeHubTabs(newValue);
   };
 
   useEffect(() => {
@@ -123,6 +125,20 @@ const MyHub: React.FC = () => {
     }
   }, [data]);
 
+  const filteredWorkflow =
+    predefinedData?.GetPredefinedWorkflowList &&
+    predefinedData?.GetPredefinedWorkflowList.filter((data: string) =>
+      data.toLowerCase().includes(searchPredefined.trim())
+    );
+
+  const filteredExperiment =
+    totalExp &&
+    totalExp.filter(
+      (data) =>
+        data.ChaosName.toLowerCase().includes(search.trim()) ||
+        data.ExperimentName.toLowerCase().includes(search.trim())
+    );
+
   return loading || predefinedLoading ? (
     <Backdrop open className={classes.backdrop}>
       <Loader />
@@ -133,17 +149,19 @@ const MyHub: React.FC = () => {
       </Center>
     </Backdrop>
   ) : (
-    <Scaffold>
+    <Wrapper>
       <BackButton />
       <div className={classes.header}>
         <Typography variant="h3" gutterBottom>
           {UserHub?.HubName}
         </Typography>
-        <Typography variant="h5">
+        <Typography variant="h5" gutterBottom>
           {t('myhub.myhubChart.repoLink')}
-          <strong>
-            {UserHub?.RepoURL}/{UserHub?.RepoBranch}
-          </strong>
+          <strong>{UserHub?.RepoURL}</strong>
+        </Typography>
+        <Typography variant="h5">
+          {t('myhub.myhubChart.repoBranch')}
+          <strong>{UserHub?.RepoBranch}</strong>
         </Typography>
         <Typography className={classes.lastSyncText}>
           {t('myhub.myhubChart.lastSynced')}{' '}
@@ -151,115 +169,100 @@ const MyHub: React.FC = () => {
         </Typography>
         {/* </div> */}
       </div>
-      <Accordion
-        square
-        classes={{
-          root: classes.MuiAccordionroot,
-        }}
-        expanded={expanded === 'panel1'}
-        onChange={handleChange('panel1')}
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
-          aria-controls="panel1d-content"
-          id="panel1d-header"
+      <AppBar position="static" color="default" className={classes.appBar}>
+        <Tabs
+          value={workflowTabValue}
+          onChange={handleTabChange}
+          TabIndicatorProps={{
+            style: {
+              backgroundColor: theme.palette.highlight,
+            },
+          }}
+          variant="fullWidth"
         >
-          <Typography variant="h4">
-            <strong>{t('myhub.myhubChart.preDefined')}</strong>
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <div className={classes.mainDiv}>
-            <HeaderSection
-              searchValue={searchPredefined}
-              changeSearch={handlePreDefinedSearch}
-            />
-            <div className={classes.chartsGroup}>
-              {predefinedData?.GetPredefinedWorkflowList.length > 0 ? (
-                predefinedData?.GetPredefinedWorkflowList.filter(
-                  (data: string) =>
-                    data.toLowerCase().includes(searchPredefined.trim())
-                ).map((expName: string) => {
-                  return (
-                    <ChartCard
-                      key={expName}
-                      expName={{
-                        ChaosName: 'predefined',
-                        ExperimentName: expName,
-                      }}
-                      UserHub={UserHub}
-                      setSearch={setSearchPredefined}
-                      projectID={projectID}
-                      userRole={getProjectRole()}
-                      isPredefined
-                    />
-                  );
-                })
-              ) : (
-                <>
-                  <img
-                    src="/icons/no-experiment-found.svg"
-                    alt="no experiment"
-                    width="80px"
-                    height="80px"
+          <StyledTab
+            label={`${t('myhub.myhubChart.preDefined')}`}
+            data-cy="browseWorkflow"
+          />
+          <StyledTab
+            label={`${t('myhub.myhubChart.chaosCharts')}`}
+            data-cy="browseSchedule"
+          />
+        </Tabs>
+      </AppBar>
+      <TabPanel value={workflowTabValue} index={0}>
+        <div className={classes.mainDiv}>
+          <HeaderSection
+            searchValue={searchPredefined}
+            changeSearch={handlePreDefinedSearch}
+          />
+          <div className={classes.chartsGroup}>
+            {filteredWorkflow?.length > 0 ? (
+              filteredWorkflow.map((expName: string) => {
+                return (
+                  <ChartCard
+                    key={expName}
+                    expName={{
+                      ChaosName: 'predefined',
+                      ExperimentName: expName,
+                    }}
+                    UserHub={UserHub}
+                    setSearch={setSearchPredefined}
+                    projectID={projectID}
+                    userRole={getProjectRole()}
+                    isPredefined
                   />
-                  <Typography variant="h5" className={classes.noExp}>
-                    {t('myhub.myhubChart.noExp')}
-                  </Typography>
-                </>
-              )}
-            </div>
+                );
+              })
+            ) : (
+              <>
+                <img
+                  src="./icons/no-experiment-found.svg"
+                  alt="no experiment"
+                  className={classes.noExpImage}
+                />
+                <Typography variant="h5" className={classes.noExp}>
+                  {t('myhub.myhubChart.noPredefinedExp')}
+                </Typography>
+              </>
+            )}
           </div>
-        </AccordionDetails>
-      </Accordion>
-      <Accordion
-        square
-        classes={{
-          root: classes.MuiAccordionroot,
-        }}
-        expanded={expanded === 'panel2'}
-        onChange={handleChange('panel2')}
-        className={classes.chartAccordion}
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
-          aria-controls="panel2d-content"
-          id="panel2d-header"
-        >
-          <Typography variant="h4">
-            <strong>{t('myhub.myhubChart.chaosCharts')}</strong>
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <div className={classes.mainDiv}>
-            <HeaderSection searchValue={search} changeSearch={changeSearch} />
-            <div className={classes.chartsGroup}>
-              {totalExp &&
-                totalExp.length > 0 &&
-                totalExp
-                  .filter(
-                    (data) =>
-                      data.ChaosName.toLowerCase().includes(search.trim()) ||
-                      data.ExperimentName.toLowerCase().includes(search.trim())
-                  )
-                  .map((expName: ChartName) => {
-                    return (
-                      <ChartCard
-                        key={`${expName.ChaosName}-${expName.ExperimentName}`}
-                        expName={expName}
-                        UserHub={UserHub}
-                        setSearch={setSearch}
-                        projectID={projectID}
-                        userRole={getProjectRole()}
-                        isPredefined={false}
-                      />
-                    );
-                  })}
-            </div>
+        </div>
+      </TabPanel>
+      <TabPanel value={workflowTabValue} index={1}>
+        <div className={classes.mainDiv}>
+          <HeaderSection searchValue={search} changeSearch={changeSearch} />
+          <div className={classes.chartsGroup}>
+            {filteredExperiment?.length > 0 ? (
+              filteredExperiment.map((expName: ChartName) => {
+                return (
+                  <ChartCard
+                    key={`${expName.ChaosName}-${expName.ExperimentName}`}
+                    expName={expName}
+                    UserHub={UserHub}
+                    setSearch={setSearch}
+                    projectID={projectID}
+                    userRole={getProjectRole()}
+                    isPredefined={false}
+                  />
+                );
+              })
+            ) : (
+              <>
+                <img
+                  src="./icons/no-experiment-found.svg"
+                  alt="no experiment"
+                  className={classes.noExpImage}
+                />
+                <Typography variant="h5" className={classes.noExp}>
+                  {t('myhub.myhubChart.noExp')}
+                </Typography>
+              </>
+            )}
           </div>
-        </AccordionDetails>
-      </Accordion>
-    </Scaffold>
+        </div>
+      </TabPanel>
+    </Wrapper>
   );
 };
 

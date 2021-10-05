@@ -1,5 +1,5 @@
 /* eslint-disable no-const-assign */
-import { Typography, useTheme } from '@material-ui/core';
+import { IconButton, Popover, Typography, useTheme } from '@material-ui/core';
 import Paper from '@material-ui/core/Paper';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
@@ -7,10 +7,13 @@ import TableCell from '@material-ui/core/TableCell';
 import TableContainer from '@material-ui/core/TableContainer';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
+import InfoIcon from '@material-ui/icons/Info';
 import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab';
+import { Icon } from 'litmus-ui';
 import localforage from 'localforage';
 import React, {
   forwardRef,
+  lazy,
   useEffect,
   useImperativeHandle,
   useState,
@@ -25,8 +28,11 @@ import useActions from '../../../redux/actions';
 import * as WorkflowActions from '../../../redux/actions/workflow';
 import { RootState } from '../../../redux/reducers';
 import parsed, { updateManifestImage } from '../../../utils/yamlUtils';
-import ConfigurationStepper from './ConfigurationStepper/ConfigurationStepper';
 import useStyles from './styles';
+
+const ConfigurationStepper = lazy(
+  () => import('./ConfigurationStepper/ConfigurationStepper')
+);
 
 interface WorkflowTableProps {
   isCustom: boolean | undefined;
@@ -60,6 +66,25 @@ const WorkflowTable = forwardRef(
     const imageRegistryData = useSelector(
       (state: RootState) => state.selectedImageRegistry
     );
+
+    /**
+     * State variables to manage popover actions
+     */
+    const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(
+      null
+    );
+
+    const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+      setAnchorEl(event.currentTarget);
+    };
+
+    const handleClose = () => {
+      setAnchorEl(null);
+    };
+
+    const open = Boolean(anchorEl);
+    const id = open ? 'simple-popover' : undefined;
+
     const addWeights = (manifest: string) => {
       const arr: experimentMap[] = [];
       const hashMap = new Map();
@@ -87,11 +112,11 @@ const WorkflowTable = forwardRef(
               expData.push({
                 StepIndex: index,
                 Name: chaosEngine.metadata.generateName,
-                Namespace:
-                  chaosEngine.spec.appinfo?.appns ===
-                  '{{workflow.parameters.adminModeNamespace}}'
-                    ? namespace
-                    : chaosEngine.spec.appinfo?.appns ?? '',
+                Namespace: chaosEngine.spec.appinfo?.appns
+                  .toLowerCase()
+                  .includes('namespace')
+                  ? namespace
+                  : chaosEngine.spec.appinfo?.appns ?? '',
                 Application: chaosEngine.spec.appinfo?.applabel ?? '',
                 Probes: chaosEngine.spec.experiments[0].spec.probe?.length ?? 0,
                 ChaosEngine: artifact.raw.data,
@@ -123,6 +148,9 @@ const WorkflowTable = forwardRef(
       // Else if Revert Chaos is set to true and it is not already set in the manifest
       // For Workflows
       if (revertChaos && parsedYAML.kind === 'Workflow') {
+        parsedYAML.spec.podGC = {
+          strategy: 'OnWorkflowCompletion',
+        };
         parsedYAML.spec.templates[0].steps.push([
           {
             name: 'revert-chaos',
@@ -153,6 +181,9 @@ const WorkflowTable = forwardRef(
       // Else if Revert Chaos is set to True and it is not already set in the manifest
       // For Cron Workflow
       else if (revertChaos && parsedYAML.kind === 'CronWorkflow') {
+        parsedYAML.spec.workflowSpec.podGC = {
+          strategy: 'OnWorkflowCompletion',
+        };
         parsedYAML.spec.workflowSpec.templates[0].steps.push([
           {
             name: 'revert-chaos',
@@ -218,6 +249,74 @@ const WorkflowTable = forwardRef(
       });
     }, [manifest]);
 
+    const deleteExperiment = (experimentIndex: number) => {
+      /**
+       * Workflow manifest saved in redux state
+       */
+      const wfManifest = YAML.parse(manifest);
+
+      /**
+       * Get template name according to the experiment index
+       */
+      const templateName = wfManifest.spec.templates[experimentIndex].name;
+
+      /**
+       * Get instance_id of Chaos Engines
+       */
+      const selectedEngine =
+        wfManifest.spec.templates[experimentIndex].inputs.artifacts[0];
+      const { instance_id } = YAML.parse(selectedEngine.raw.data).metadata
+        .labels;
+
+      /**
+       * if the template is a revert-chaos template
+       * the engine name is removed from the
+       * revert-chaos template args
+       */
+      if (
+        wfManifest.spec.templates[
+          wfManifest.spec.templates.length - 1
+        ].name.includes('revert-')
+      ) {
+        const argument = wfManifest.spec.templates[
+          wfManifest.spec.templates.length - 1
+        ].container.args[0].replace(`${instance_id}, `, '');
+        wfManifest.spec.templates[
+          wfManifest.spec.templates.length - 1
+        ].container.args[0] = argument;
+      }
+
+      /**
+       * Remove the experiment name from steps
+       */
+      wfManifest.spec.templates[0].steps.forEach(
+        (data: any, stepIndex: number) => {
+          data.forEach((step: any, index: number) => {
+            if (step.name === templateName) {
+              data.splice(index, 1);
+            }
+          });
+          if (data.length === 0) {
+            wfManifest.spec.templates[0].steps.splice(stepIndex, 1);
+          }
+        }
+      );
+
+      /**
+       * Remove the chaos engine from the overall manifest
+       * according to the experiment index
+       */
+      wfManifest.spec.templates.splice(experimentIndex, 1);
+
+      /**
+       * Set the updated manifest to redux state
+       */
+      workflow.setWorkflowManifest({
+        manifest: YAML.stringify(wfManifest),
+        engineYAML: '',
+      });
+    };
+
     function onNext() {
       if (experiments.length === 0) {
         return false; // Should show alert
@@ -231,8 +330,16 @@ const WorkflowTable = forwardRef(
       return true; // Should not show any alert
     }
 
+    function configurationStepperRef() {
+      if (displayStepper) {
+        return false; // Should show alert
+      }
+      return true;
+    }
+
     useImperativeHandle(ref, () => ({
       onNext,
+      configurationStepperRef,
     }));
 
     return (
@@ -258,26 +365,30 @@ const WorkflowTable = forwardRef(
                     <TableCell align="left">
                       {t('createWorkflow.chooseWorkflow.table.head5')}
                     </TableCell>
+                    <TableCell className={classes.emptyCell} />
+                    <TableCell className={classes.emptyCell} />
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {experiments.length > 0 ? (
                     experiments.map((experiment: ChaosCRDTable, index) => (
-                      <TableRow
-                        key={experiment.Name}
-                        onClick={() => {
-                          setDisplayStepper(true);
-                          setEngineIndex(experiment.StepIndex);
-                          workflow.setWorkflowManifest({
-                            engineYAML: experiment.ChaosEngine,
-                          });
-                        }}
-                        className={classes.selection}
-                      >
+                      <TableRow key={experiment.Name}>
                         <TableCell component="th" scope="row">
                           {index + 1}
                         </TableCell>
-                        <TableCell align="left">{experiment.Name}</TableCell>
+                        <TableCell
+                          className={classes.selection}
+                          align="left"
+                          onClick={() => {
+                            setDisplayStepper(true);
+                            setEngineIndex(experiment.StepIndex);
+                            workflow.setWorkflowManifest({
+                              engineYAML: experiment.ChaosEngine,
+                            });
+                          }}
+                        >
+                          {experiment.Name}
+                        </TableCell>
                         <TableCell align="left">
                           {experiment.Namespace}
                         </TableCell>
@@ -285,11 +396,43 @@ const WorkflowTable = forwardRef(
                           {experiment.Application}
                         </TableCell>
                         <TableCell align="left">{experiment.Probes}</TableCell>
+                        <TableCell>
+                          <IconButton
+                            onClick={() => {
+                              setDisplayStepper(true);
+                              setEngineIndex(experiment.StepIndex);
+                              workflow.setWorkflowManifest({
+                                engineYAML: experiment.ChaosEngine,
+                              });
+                            }}
+                            size="medium"
+                          >
+                            <Icon
+                              name="pencil"
+                              size="md"
+                              color={theme.palette.text.hint}
+                            />
+                          </IconButton>
+                        </TableCell>
+                        <TableCell>
+                          <IconButton
+                            onClick={() =>
+                              deleteExperiment(experiment.StepIndex)
+                            }
+                            size="medium"
+                          >
+                            <Icon
+                              name="trash"
+                              size="md"
+                              color={theme.palette.error.main}
+                            />
+                          </IconButton>
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5}>
+                      <TableCell colSpan={7}>
                         <Typography align="center">
                           {t('createWorkflow.chooseWorkflow.pleaseAddExp')}
                         </Typography>
@@ -306,6 +449,31 @@ const WorkflowTable = forwardRef(
                     <Typography>
                       {t('createWorkflow.chooseWorkflow.revertSchedule')}
                     </Typography>
+                    <IconButton
+                      className={classes.iconBtn}
+                      onClick={handleClick}
+                      aria-label="info"
+                    >
+                      <InfoIcon />
+                    </IconButton>
+                    <Popover
+                      id={id}
+                      open={open}
+                      anchorEl={anchorEl}
+                      onClose={handleClose}
+                      anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'center',
+                      }}
+                      transformOrigin={{
+                        vertical: 'top',
+                        horizontal: 'center',
+                      }}
+                    >
+                      <Typography className={classes.infoText}>
+                        {t('createWorkflow.chooseWorkflow.retainLogs')}
+                      </Typography>
+                    </Popover>
                   </div>
                   <div>
                     <ToggleButtonGroup

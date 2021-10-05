@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -10,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/litmuschaos/litmus/litmus-portal/graphql-server/graph/model"
@@ -26,6 +29,26 @@ func ClusterRegister(input model.ClusterInput) (*model.ClusterRegResponse, error
 	clusterID := uuid.New().String()
 
 	token, err := clusterOps.ClusterCreateJWT(clusterID)
+	if err != nil {
+		return &model.ClusterRegResponse{}, err
+	}
+
+	if input.NodeSelector != nil {
+		selectors := strings.Split(*input.NodeSelector, ",")
+
+		for _, el := range selectors {
+			kv := strings.Split(el, "=")
+			if len(kv) != 2 {
+				return nil, errors.New("nodeselector environment variable is not correct. Correct format: \"key1=value2,key2=value2\"")
+			}
+
+			if strings.Contains(kv[0], "\"") || strings.Contains(kv[1], "\"") {
+				return nil, errors.New("nodeselector environment variable contains escape character(s). Correct format: \"key1=value2,key2=value2\"")
+			}
+		}
+	}
+	var tolerations []*dbSchemaCluster.Toleration
+	err = copier.Copy(&tolerations, input.Tolerations)
 	if err != nil {
 		return &model.ClusterRegResponse{}, err
 	}
@@ -47,6 +70,9 @@ func ClusterRegister(input model.ClusterInput) (*model.ClusterRegResponse, error
 		UpdatedAt:      strconv.FormatInt(time.Now().Unix(), 10),
 		Token:          token,
 		IsRemoved:      false,
+		NodeSelector:   input.NodeSelector,
+		Tolerations:    tolerations,
+		StartTime:      strconv.FormatInt(time.Now().Unix(), 10),
 	}
 
 	err = dbOperationsCluster.InsertCluster(newCluster)
@@ -54,7 +80,7 @@ func ClusterRegister(input model.ClusterInput) (*model.ClusterRegResponse, error
 		return &model.ClusterRegResponse{}, err
 	}
 
-	log.Print("NEW CLUSTER REGISTERED : ID-", clusterID, " PID-", input.ProjectID)
+	logrus.Print("New Agent Registered with ID: ", clusterID, " PROJECT_ID: ", input.ProjectID)
 
 	return &model.ClusterRegResponse{
 		ClusterID:   newCluster.ClusterID,
@@ -65,6 +91,11 @@ func ClusterRegister(input model.ClusterInput) (*model.ClusterRegResponse, error
 
 // ConfirmClusterRegistration takes the cluster_id and access_key from the subscriber and validates it, if validated generates and sends new access_key
 func ConfirmClusterRegistration(identity model.ClusterIdentity, r store.StateData) (*model.ClusterConfirmResponse, error) {
+	currentVersion := os.Getenv("VERSION")
+	if currentVersion != identity.Version {
+		return nil, fmt.Errorf("ERROR: CLUSTER VERSION MISMATCH (need %v got %v)", currentVersion, identity.Version)
+	}
+
 	cluster, err := dbOperationsCluster.GetCluster(identity.ClusterID)
 	if err != nil {
 		return &model.ClusterConfirmResponse{IsClusterConfirmed: false}, err
@@ -133,20 +164,20 @@ func DeleteCluster(clusterID string, r store.StateData) (string, error) {
 
 	requests := []string{
 		`{
-			"apiVersion": "apps/v1",
-			"kind": "Deployment",
-			"metadata": {
-				"name": "subscriber",
-				"namespace": ` + *cluster.AgentNamespace + `
-			}
-		}`,
-		`{
 		   "apiVersion": "v1",
 		   "kind": "ConfigMap",
 		   "metadata": {
 			  "name": "agent-config",
 			  "namespace": ` + *cluster.AgentNamespace + `
 		   }
+		}`,
+		`{
+			"apiVersion": "apps/v1",
+			"kind": "Deployment",
+			"metadata": {
+				"name": "subscriber",
+				"namespace": ` + *cluster.AgentNamespace + `
+			}
 		}`,
 	}
 
@@ -228,9 +259,10 @@ func SendRequestToSubscriber(subscriberRequest clusterOps.SubscriberRequests, r 
 	newAction := &model.ClusterAction{
 		ProjectID: subscriberRequest.ProjectID,
 		Action: &model.ActionPayload{
-			K8sManifest: subscriberRequest.K8sManifest,
-			Namespace:   subscriberRequest.Namespace,
-			RequestType: subscriberRequest.RequestType,
+			K8sManifest:  subscriberRequest.K8sManifest,
+			Namespace:    subscriberRequest.Namespace,
+			RequestType:  subscriberRequest.RequestType,
+			ExternalData: subscriberRequest.ExternalData,
 		},
 	}
 
@@ -241,4 +273,21 @@ func SendRequestToSubscriber(subscriberRequest clusterOps.SubscriberRequests, r 
 	}
 
 	r.Mutex.Unlock()
+}
+
+// GetAgentDetails fetches agent details from the DB
+func GetAgentDetails(ctx context.Context, clusterID string, projectID string) (*model.Cluster, error) {
+	cluster, err := dbOperationsCluster.GetAgentDetails(ctx, clusterID, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	newCluster := model.Cluster{}
+
+	err = copier.Copy(&newCluster, &cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	return &newCluster, nil
 }

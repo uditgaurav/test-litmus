@@ -22,17 +22,23 @@ import (
 	"os"
 	"time"
 
+	"github.com/kelseyhightower/envconfig"
 	"github.com/litmuschaos/litmus/litmus-portal/cluster-agents/event-tracker/pkg/k8s"
 	"github.com/litmuschaos/litmus/litmus-portal/cluster-agents/event-tracker/pkg/utils"
+	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/informers"
 
-	"k8s.io/apimachinery/pkg/runtime"
+	rt "runtime"
+
+	eventtrackerv1 "github.com/litmuschaos/litmus/litmus-portal/cluster-agents/event-tracker/api/v1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	eventtrackerv1 "github.com/litmuschaos/litmus/litmus-portal/cluster-agents/event-tracker/api/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+
 	"github.com/litmuschaos/litmus/litmus-portal/cluster-agents/event-tracker/controllers"
 	// +kubebuilder:scaffold:imports
 )
@@ -42,7 +48,28 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 )
 
+type Config struct {
+	Version            string `required:"true"`
+	AgentScope         string `required:"true" split_words:"true"`
+	IsClusterConfirmed string `required:"true" split_words:"true"`
+	AccessKey          string `required:"true" split_words:"true"`
+	ClusterId          string `required:"true" split_words:"true"`
+	ServerAddr         string `required:"true" split_words:"true"`
+	AgentNamespace     string `required:"true" split_words:"true"`
+}
+
 func init() {
+
+	logrus.Info("Go Version: ", rt.Version())
+	logrus.Info("Go OS/Arch: ", rt.GOOS, "/", rt.GOARCH)
+
+	var c Config
+
+	err := envconfig.Process("", &c)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
 	_ = clientgoscheme.AddToScheme(scheme)
 
 	_ = eventtrackerv1.AddToScheme(scheme)
@@ -53,7 +80,16 @@ func init() {
 		log.Print(err)
 	}
 
-	factory := informers.NewSharedInformerFactory(clientset, 30*time.Second)
+	var (
+		agent_scope = os.Getenv("AGENT_SCOPE")
+		factory     informers.SharedInformerFactory
+	)
+
+	if agent_scope == "cluster" {
+		factory = informers.NewSharedInformerFactory(clientset, 30*time.Second)
+	} else if agent_scope == "namespace" {
+		factory = informers.NewSharedInformerFactoryWithOptions(clientset, 30*time.Second, informers.WithNamespace(os.Getenv("AGENT_NAMESPACE")))
+	}
 
 	go utils.RunDeploymentInformer(factory)
 	go utils.RunDSInformer(factory)
@@ -72,13 +108,31 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		Port:               9443,
-		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "2b79cec3.litmuschaos.io",
-	})
+	var (
+		agent_scope = os.Getenv("AGENT_SCOPE")
+		mgr         manager.Manager
+		err         error
+	)
+
+	if agent_scope == "namespace" {
+		mgr, err = ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+			Scheme:             scheme,
+			MetricsBindAddress: metricsAddr,
+			Port:               9443,
+			Namespace:          os.Getenv("AGENT_NAMESPACE"),
+			LeaderElection:     enableLeaderElection,
+			LeaderElectionID:   "2b79cec3.litmuschaos.io",
+		})
+	} else if agent_scope == "cluster" {
+		mgr, err = ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+			Scheme:             scheme,
+			MetricsBindAddress: metricsAddr,
+			Port:               9443,
+			LeaderElection:     enableLeaderElection,
+			LeaderElectionID:   "2b79cec3.litmuschaos.io",
+		})
+	}
+
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)

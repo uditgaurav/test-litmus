@@ -2,7 +2,7 @@ import { Paper, Typography } from '@material-ui/core';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import BackButton from '../../components/Button/BackButton';
-import Scaffold from '../../containers/layouts/Scaffold';
+import Wrapper from '../../containers/layouts/Wrapper';
 import TargetCopy from '../../views/Targets/TargetCopy';
 import useStyles from './styles';
 
@@ -11,8 +11,8 @@ const ConnectTarget: React.FC = () => {
   const { t } = useTranslation();
 
   return (
-    <Scaffold>
-      <section className={classes.root}>
+    <Wrapper>
+      <section>
         <BackButton />
         <div className={classes.container}>
           <Typography variant="h3">
@@ -40,7 +40,7 @@ const ConnectTarget: React.FC = () => {
               </div>
               <img
                 className={classes.linkTargetImg}
-                src="icons/connectTarget.svg"
+                src="./icons/connectTarget.svg"
                 alt="link target"
               />
             </div>
@@ -49,7 +49,7 @@ const ConnectTarget: React.FC = () => {
           </Paper>
         </div>
       </section>
-    </Scaffold>
+    </Wrapper>
   );
 };
 export default ConnectTarget;

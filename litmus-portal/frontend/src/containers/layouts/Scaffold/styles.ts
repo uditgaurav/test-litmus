@@ -13,6 +13,7 @@ const useStyles = makeStyles((theme: Theme) => ({
 
     '& ::-webkit-scrollbar': {
       width: '0.4rem',
+      height: '0.4rem',
     },
     '& ::-webkit-scrollbar-track': {
       marginTop: theme.spacing(1),
@@ -32,8 +33,8 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   content: {
     gridArea: 'content',
-    padding: theme.spacing(5, 7.5),
-    overflowY: 'scroll',
+    padding: theme.spacing(5, 7.5, 10),
+    overflowY: 'auto',
   },
   sidebar: {
     gridArea: 'sidebar',

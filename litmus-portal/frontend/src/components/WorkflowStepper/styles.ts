@@ -2,12 +2,8 @@ import { makeStyles, Theme } from '@material-ui/core/styles';
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
-    width: '97.5%',
+    width: '100%',
     margin: '0 auto',
-    [theme.breakpoints.up('lg')]: {
-      width: '98%',
-      margin: theme.spacing(2, 'auto'),
-    },
   },
   // Header
   headWrapper: {
@@ -22,7 +18,7 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   headerButtonWrapper: {
     display: 'flex',
-    width: '10rem',
+    width: '13rem',
     justifyContent: 'space-between',
   },
   bottomButtonWrapper: {
@@ -39,6 +35,9 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   backButton: {
     marginRight: theme.spacing(1),
+  },
+  btn: {
+    fontSize: '0.8rem',
   },
   buttonGroup: {
     display: 'flex',

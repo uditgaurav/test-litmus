@@ -27,10 +27,17 @@ export interface metricsPromResponse {
   tsvs: metricsTimeStampValue[][];
 }
 
+export interface subData {
+  date: number;
+  value: string;
+  subDataName: string;
+}
+
 export interface annotationsPromResponse {
   queryid: string;
   legends: string[];
   tsvs: annotationsTimeStampValue[][];
+  subDataArray: subData[][];
 }
 
 export interface promResponse {
@@ -48,9 +55,7 @@ export interface PrometheusResponse {
 
 export interface promSeriesInput {
   series: string;
-  url: string;
-  start: string;
-  end: string;
+  ds_details: dsDetails;
 }
 
 export interface Option {
@@ -89,4 +94,48 @@ export interface PrometheusSeriesListQueryVars {
 
 export interface PrometheusSeriesListResponse {
   GetPromSeriesList: promSeriesListResponse;
+}
+
+export interface dataVars {
+  url: string;
+  start: string;
+  end: string;
+  relative_time: number;
+  refresh_interval: number;
+}
+
+export interface queryMapForPanel {
+  panelID: string;
+  queryIDs: string[];
+}
+
+export interface queryMapForPanelGroup {
+  panelGroupID: string;
+  panelQueryMap: queryMapForPanel[];
+}
+
+export interface ViewDashboardInput {
+  dbID?: string;
+  prometheusQueries: promQueryInput[];
+  queryMap: queryMapForPanelGroup[];
+  dataVarMap: dataVars;
+}
+
+export interface metricDataForPanel {
+  panelID: string;
+  PanelMetricsResponse: metricsPromResponse[];
+}
+
+export interface metricDataForPanelGroup {
+  panelGroupID: string;
+  panelGroupMetricsResponse: metricDataForPanel[];
+}
+
+export interface dashboardPromResponse {
+  dashboardMetricsResponse: metricDataForPanelGroup[];
+  annotationsResponse: annotationsPromResponse[];
+}
+
+export interface ViewDashboard {
+  viewDashboard: dashboardPromResponse;
 }

@@ -6,16 +6,21 @@ import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
 import moment from 'moment';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
+import { UserRole } from '../../models/graphql/user';
 import { history } from '../../redux/configureStore';
-import { ReactComponent as AnalyticsIcon } from '../../svg/analytics.svg';
+import { ReactComponent as ObservabilityIcon } from '../../svg/observability-sidebar.svg';
+import { ReactComponent as CodeIcon } from '../../svg/code.svg';
 import { ReactComponent as CommunityIcon } from '../../svg/community.svg';
 import { ReactComponent as DocsIcon } from '../../svg/docs.svg';
 import { ReactComponent as HomeIcon } from '../../svg/home.svg';
 import { ReactComponent as MyHubIcon } from '../../svg/myhub.svg';
 import { ReactComponent as SettingsIcon } from '../../svg/settings.svg';
 import { ReactComponent as TargetsIcon } from '../../svg/targets.svg';
+import { ReactComponent as UsageIcon } from '../../svg/usage.svg';
 import { ReactComponent as WorkflowsIcon } from '../../svg/workflows.svg';
+import { getUserRole } from '../../utils/auth';
 import { getProjectID, getProjectRole } from '../../utils/getSearchParams';
 import useStyles from './styles';
 
@@ -46,9 +51,11 @@ const CustomisedListItem: React.FC<CustomisedListItemProps> = ({
 };
 
 const SideBar: React.FC = () => {
+  const { t } = useTranslation();
   const classes = useStyles();
   const projectID = getProjectID();
   const projectRole = getProjectRole();
+  const role = getUserRole();
   const pathName = useLocation().pathname.split('/')[1];
   const version = process.env.REACT_APP_KB_CHAOS_VERSION;
   const buildTime = moment
@@ -88,12 +95,25 @@ const SideBar: React.FC = () => {
                 search: `?projectID=${projectID}&projectRole=${projectRole}`,
               });
             }}
-            label="Workflows"
+            label="Litmus Workflows"
             selected={['workflows', 'create-workflow'].includes(pathName)}
           >
             <WorkflowsIcon />
           </CustomisedListItem>
         </div>
+        <CustomisedListItem
+          key="targets"
+          handleClick={() => {
+            history.push({
+              pathname: `/targets`,
+              search: `?projectID=${projectID}&projectRole=${projectRole}`,
+            });
+          }}
+          label="ChaosAgents"
+          selected={['targets', 'target-connect'].includes(pathName)}
+        >
+          <TargetsIcon />
+        </CustomisedListItem>
         <div data-cy="myHub">
           <CustomisedListItem
             key="myhub"
@@ -110,31 +130,19 @@ const SideBar: React.FC = () => {
           </CustomisedListItem>
         </div>
         <CustomisedListItem
-          key="targets"
+          key="observability"
           handleClick={() => {
             history.push({
-              pathname: `/targets`,
+              pathname: `/observability`,
               search: `?projectID=${projectID}&projectRole=${projectRole}`,
             });
           }}
-          label="Agents"
-          selected={['targets', 'target-connect'].includes(pathName)}
+          label="Observability"
+          selected={pathName === 'observability'}
         >
-          <TargetsIcon />
+          <ObservabilityIcon />
         </CustomisedListItem>
-        <CustomisedListItem
-          key="analytics"
-          handleClick={() => {
-            history.push({
-              pathname: `/analytics`,
-              search: `?projectID=${projectID}&projectRole=${projectRole}`,
-            });
-          }}
-          label="Analytics"
-          selected={pathName === 'analytics'}
-        >
-          <AnalyticsIcon />
-        </CustomisedListItem>
+
         {projectRole === 'Owner' && (
           <CustomisedListItem
             key="settings"
@@ -150,16 +158,44 @@ const SideBar: React.FC = () => {
             <SettingsIcon />
           </CustomisedListItem>
         )}
-        <hr id="quickActions" />
+
+        {role === UserRole.admin && projectRole === 'Owner' && (
+          <CustomisedListItem
+            key="usage-statistics"
+            handleClick={() => {
+              history.push({
+                pathname: `/usage-statistics`,
+                search: `?projectID=${projectID}&projectRole=${projectRole}`,
+              });
+            }}
+            label="Usage Statistics"
+            selected={pathName === 'usage-statistics'}
+          >
+            <UsageIcon />
+          </CustomisedListItem>
+        )}
+        <hr className={classes.quickActions} />
         <CustomisedListItem
           key="litmusDocs"
           handleClick={() => {
-            window.open('https://docs.litmuschaos.io/docs/getstarted');
+            window.open('https://docs.litmuschaos.io/');
           }}
           label="Litmus Docs"
           selected={pathName === 'docs'}
         >
           <DocsIcon />
+        </CustomisedListItem>
+        <CustomisedListItem
+          key="litmusAPIDocs"
+          handleClick={() => {
+            window.open(
+              'https://litmuschaos.github.io/litmus/graphql/v2.0.0/api.html'
+            );
+          }}
+          label="Litmus API Docs"
+          selected={pathName === 'docs'}
+        >
+          <CodeIcon />
         </CustomisedListItem>
         <CustomisedListItem
           key="community"
@@ -176,8 +212,8 @@ const SideBar: React.FC = () => {
         </CustomisedListItem>
       </List>
       <Typography className={classes.versionDiv}>
-        <b>Version: </b> {version} <br />
-        <b>Build Time: </b> {buildTime}
+        <b>{t('sidebar.version')}: </b> {version} <br />
+        <b>{t('sidebar.time')}: </b> {buildTime}
       </Typography>
     </Drawer>
   );

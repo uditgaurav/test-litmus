@@ -5,17 +5,11 @@ import StepLabel from '@material-ui/core/StepLabel';
 import StepContent from '@material-ui/core/StepContent';
 import Typography from '@material-ui/core/Typography';
 import { ButtonOutlined } from 'litmus-ui';
-import { useSelector } from 'react-redux';
-import YAML from 'yaml';
-import { useTranslation } from 'react-i18next';
 import General from '../TuneWorkflowSteps/General';
 import SteadyState from '../TuneWorkflowSteps/SteadyState';
 import TargetApplication from '../TuneWorkflowSteps/TargetApplication';
+import EnvironmentVariables from '../TuneWorkflowSteps/EnvironmentVariables';
 import useStyles from './styles';
-import * as WorkflowActions from '../../../../redux/actions/workflow';
-import { WorkflowManifest } from '../../../../models/redux/workflow';
-import { RootState } from '../../../../redux/reducers';
-import useActions from '../../../../redux/actions';
 
 interface ConfigurationStepperProps {
   experimentIndex: number;
@@ -36,12 +30,12 @@ function getStepContent(
     case 0:
       return <General isCustom={isCustom} gotoStep={gotoStep} />;
     case 1:
-      return (
-        <TargetApplication engineIndex={engineIndex} gotoStep={gotoStep} />
-      );
+      return <TargetApplication gotoStep={gotoStep} />;
     case 2:
+      return <SteadyState gotoStep={gotoStep} />;
+    case 3:
       return (
-        <SteadyState
+        <EnvironmentVariables
           engineIndex={engineIndex}
           gotoStep={gotoStep}
           closeStepper={closeStepper}
@@ -57,7 +51,6 @@ const ConfigurationStepper: React.FC<ConfigurationStepperProps> = ({
   closeStepper,
   isCustom,
 }) => {
-  const { t } = useTranslation();
   const classes = useStyles();
 
   // State variable to handle Stepper Steps
@@ -68,80 +61,11 @@ const ConfigurationStepper: React.FC<ConfigurationStepperProps> = ({
     'General',
     'Target Application',
     'Define the steady state for this application',
+    'Tune Experiment',
   ];
 
   const gotoStep = (page: number) => {
     setActiveStep(page);
-  };
-  const workflow = useActions(WorkflowActions);
-  const manifest: WorkflowManifest = useSelector(
-    (state: RootState) => state.workflowManifest
-  );
-
-  const deleteExperiment = () => {
-    /**
-     * Workflow manifest saved in redux state
-     */
-    const wfManifest = YAML.parse(manifest.manifest);
-
-    /**
-     * Get template name according to the experiment index
-     */
-    const templateName = wfManifest.spec.templates[experimentIndex].name;
-
-    /**
-     * Get the workflow name according to the experiment index
-     */
-    const wfName = YAML.parse(manifest.engineYAML).metadata.generateName;
-
-    /**
-     * if the template is a revert-chaos template
-     * the engine name is removed from the
-     * revert-chaos template args
-     */
-    if (
-      wfManifest.spec.templates[
-        wfManifest.spec.templates.length - 1
-      ].name.includes('revert-')
-    ) {
-      const argument = wfManifest.spec.templates[
-        wfManifest.spec.templates.length - 1
-      ].container.args[0].replace(wfName, '');
-      wfManifest.spec.templates[
-        wfManifest.spec.templates.length - 1
-      ].container.args[0] = argument;
-    }
-
-    /**
-     * Remove the experiment name from steps
-     */
-    wfManifest.spec.templates[0].steps.forEach(
-      (data: any, stepIndex: number) => {
-        data.forEach((step: any, index: number) => {
-          if (step.name === templateName) {
-            data.splice(index, 1);
-          }
-        });
-        if (data.length === 0) {
-          wfManifest.spec.templates[0].steps.splice(stepIndex, 1);
-        }
-      }
-    );
-
-    /**
-     * Remove the chaos engine from the overall manifest
-     * according to the experiment index
-     */
-    wfManifest.spec.templates.splice(experimentIndex, 1);
-
-    /**
-     * Set the updated manifest to redux state
-     */
-    workflow.setWorkflowManifest({
-      manifest: YAML.stringify(wfManifest),
-      engineYAML: '',
-    });
-    closeStepper();
   };
 
   return (
@@ -149,26 +73,6 @@ const ConfigurationStepper: React.FC<ConfigurationStepperProps> = ({
       <div>
         <ButtonOutlined onClick={closeStepper} style={{ float: 'right' }}>
           &#x2715;
-        </ButtonOutlined>
-      </div>
-      <div className={classes.deleteExpDiv}>
-        <Typography className={classes.editExpText}>
-          {t('createWorkflow.tuneWorkflow.verticalStepper.editExp')}
-        </Typography>
-        <ButtonOutlined
-          onClick={() => {
-            deleteExperiment();
-          }}
-          className={classes.deleteBtn}
-        >
-          <img
-            src="./icons/delete-exp.svg"
-            alt="delete"
-            className={classes.deleteIcon}
-          />
-          <Typography color="error" className={classes.deleteExpText}>
-            {t('createWorkflow.tuneWorkflow.verticalStepper.deleteExp')}
-          </Typography>
         </ButtonOutlined>
       </div>
       <Stepper activeStep={activeStep} orientation="vertical">

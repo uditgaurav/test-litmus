@@ -9,9 +9,11 @@ data:
   CLUSTER_ID: #{CLUSTER_ID}
   ACCESS_KEY: #{ACCESS_KEY}
   AGENT_SCOPE: #{AGENT-SCOPE}
-  IS_CLUSTER_CONFIRMED: "false"
+  VERSION: #{VERSION}
+  START_TIME: #{START_TIME}
+  IS_CLUSTER_CONFIRMED: #{IS_CLUSTER_CONFIRMED}
   COMPONENTS: |
-    DEPLOYMENTS: ["app=chaos-exporter", "name=chaos-operator", "app=argo-server", "app=event-tracker", "app=workflow-controller"]
+    DEPLOYMENTS: #{AGENT-DEPLOYMENTS}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -29,6 +31,8 @@ spec:
       labels:
         app: subscriber
     spec:
+      #{tolerations}
+      #{nodeselector}
       serviceAccountName: #{SUBSCRIBER-SERVICE-ACCOUNT}
       containers:
         - name: subscriber
@@ -64,6 +68,8 @@ spec:
       labels:
         app: event-tracker
     spec:
+      #{tolerations}
+      #{nodeselector}
       serviceAccountName: event-tracker-sa
       containers:
         - image: #{EVENT-TRACKER-IMAGE}

@@ -1,19 +1,20 @@
 import { useMutation, useQuery } from '@apollo/client';
 import { Snackbar, Typography } from '@material-ui/core';
-import { ButtonFilled, ButtonOutlined, Modal } from 'litmus-ui';
-import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Alert } from '@material-ui/lab';
+import { ButtonFilled, ButtonOutlined, Modal } from 'litmus-ui';
+import React, { lazy, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import DeveloperGuide from '../../components/DeveloperGuide';
 import Loader from '../../components/Loader';
-import Scaffold from '../../containers/layouts/Scaffold';
+import { constants } from '../../constants';
+import Wrapper from '../../containers/layouts/Wrapper';
 import { DELETE_HUB, GET_HUB_STATUS, SYNC_REPO } from '../../graphql';
 import { HubDetails, HubStatus } from '../../models/redux/myhub';
 import { getProjectID } from '../../utils/getSearchParams';
 import CustomMyHubCard from './customMyHubCard';
 import useStyles from './styles';
-import MyHubConnectDrawer from './MyHubConnectDrawer';
-import { constants } from '../../constants';
+
+const MyHubConnectDrawer = lazy(() => import('./MyHubConnectDrawer'));
 
 interface DeleteHub {
   deleteHubModal: boolean;
@@ -140,51 +141,50 @@ const MyHub: React.FC = () => {
   };
 
   return (
-    <Scaffold>
+    <Wrapper>
       {loading ? (
         <Loader />
       ) : (
-        <>
+        <div className={classes.root}>
           {/* Header Div */}
           <div className={classes.header}>
             <Typography variant="h3">{t('myhub.mainPage.header')}</Typography>
             <ButtonFilled
               onClick={() => setDrawerState(true)}
               className={classes.connectNewHub}
+              data-cy="myHubConnectButton"
             >
               {t('myhub.mainPage.connect')}
             </ButtonFilled>
           </div>
           {/* Charts Div */}
           <div className={classes.mainDiv}>
-            <div className={classes.githubConfirmed}>
-              <Typography className={classes.connectHub}>
-                {t('myhub.mainPage.switchHub')}
-              </Typography>
-              <div className={classes.noHub}>
-                {totalHubs && totalHubs.length === 0 ? (
-                  <DeveloperGuide
-                    header={t('myhub.mainPage.devGuideHeader')}
-                    description={t('myhub.mainPage.devGuideDescription')}
-                    expAvailable={false}
-                  />
-                ) : (
-                  <></>
-                )}
-                <div className={classes.chartsGroup}>
-                  {totalHubs &&
-                    totalHubs.map((hub: HubDetails) => (
-                      <CustomMyHubCard
-                        key={hub.id}
-                        hub={hub}
-                        keyValue={key}
-                        handleDelete={handleDelete}
-                        handleRefresh={handleRefresh}
-                        refreshLoader={refreshLoading}
-                        handleEditHub={openHubDrawer}
-                      />
-                    ))}
-                </div>
+            <Typography className={classes.connectHub}>
+              {t('myhub.mainPage.switchHub')}
+            </Typography>
+            <div className={classes.noHub}>
+              {totalHubs && totalHubs.length === 0 ? (
+                <DeveloperGuide
+                  header={t('myhub.mainPage.devGuideHeader')}
+                  description={t('myhub.mainPage.devGuideDescription')}
+                  expAvailable={false}
+                />
+              ) : (
+                <></>
+              )}
+              <div className={classes.chartsGroup}>
+                {totalHubs &&
+                  totalHubs.map((hub: HubDetails) => (
+                    <CustomMyHubCard
+                      key={hub.id}
+                      hub={hub}
+                      keyValue={key}
+                      handleDelete={handleDelete}
+                      handleRefresh={handleRefresh}
+                      refreshLoader={refreshLoading}
+                      handleEditHub={openHubDrawer}
+                    />
+                  ))}
               </div>
             </div>
             {deleteHub.deleteHubModal ? (
@@ -196,9 +196,10 @@ const MyHub: React.FC = () => {
                     &#x2715;
                   </ButtonOutlined>
                 }
+                data-cy="deleteHubModal"
               >
                 <div className={classes.modalDiv}>
-                  <img src="/icons/red-cross.svg" alt="disconnect" />
+                  <img src="./icons/red-cross.svg" alt="disconnect" />
                   <Typography className={classes.disconnectHeader}>
                     {t('myhub.mainPage.disconnectHeader')}
                   </Typography>
@@ -217,7 +218,7 @@ const MyHub: React.FC = () => {
               </Modal>
             ) : null}
           </div>
-        </>
+        </div>
       )}
 
       {/* Add/Edit MyHub Drawer */}
@@ -231,6 +232,7 @@ const MyHub: React.FC = () => {
       />
       {/* SnackBar to display success/failure alerts */}
       <Snackbar
+        data-cy="myHubAlert"
         open={displayResult}
         autoHideDuration={6000}
         onClose={() => {
@@ -254,7 +256,7 @@ const MyHub: React.FC = () => {
           {cloneResult.message}
         </Alert>
       </Snackbar>
-    </Scaffold>
+    </Wrapper>
   );
 };
 

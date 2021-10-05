@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/name: litmus
     # provide unique instance-id if applicable
     # app.kubernetes.io/instance: litmus-abcxzy
-    app.kubernetes.io/version: v1.13.5
+    app.kubernetes.io/version: v2.0.0
     app.kubernetes.io/component: operator
     app.kubernetes.io/part-of: litmus
     app.kubernetes.io/managed-by: kubectl
@@ -30,6 +30,8 @@ spec:
         name: chaos-operator
     spec:
       serviceAccountName: litmus-namespace-scope
+      #{tolerations}
+      #{nodeselector}
       containers:
         - name: chaos-operator
           image: #{LITMUS-CHAOS-OPERATOR}
@@ -52,13 +54,18 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
-              value: "chaos-operator"
+              value: 'chaos-operator'
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
     app: chaos-exporter
+    release: prometheus-stack
   name: chaos-exporter
   namespace: #{AGENT-NAMESPACE}
 spec:
@@ -70,12 +77,20 @@ spec:
     metadata:
       labels:
         app: chaos-exporter
+        release: prometheus-stack
     spec:
+      #{tolerations}
+      #{nodeselector}
       containers:
         - image: #{LITMUS-CHAOS-EXPORTER}
           imagePullPolicy: Always
           name: chaos-exporter
+          ports:
+            - containerPort: 8080
+              name: tcp
           env:
+            - name: TSDB_SCRAPE_INTERVAL
+              value: '10'
             - name: WATCH_NAMESPACE
               value: #{AGENT-NAMESPACE}
       serviceAccountName: litmus-namespace-scope

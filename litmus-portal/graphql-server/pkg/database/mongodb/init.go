@@ -2,10 +2,10 @@ package mongodb
 
 import (
 	"context"
-	"log"
 	"os"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -24,6 +24,7 @@ const (
 	PanelCollection
 	DashboardCollection
 	ImageRegistryCollection
+	ServerConfigCollection
 )
 
 // MongoInterface requires a MongoClient that implements the Initialize method to create the Mongo DB client
@@ -47,6 +48,7 @@ type MongoClient struct {
 	PanelCollection            *mongo.Collection
 	DashboardCollection        *mongo.Collection
 	ImageRegistryCollection    *mongo.Collection
+	ServerConfigCollection     *mongo.Collection
 }
 
 var (
@@ -64,6 +66,7 @@ var (
 		PanelCollection:            "panel-collection",
 		DashboardCollection:        "dashboard-collection",
 		ImageRegistryCollection:    "image-registry-collection",
+		ServerConfigCollection:     "server-config-collection",
 	}
 
 	dbName            = "litmus"
@@ -80,7 +83,7 @@ func (m *MongoClient) Initialize() *MongoClient {
 	)
 
 	if dbServer == "" || dbUser == "" || dbPassword == "" {
-		log.Fatal("DB configuration failed")
+		logrus.Fatal("DB configuration failed")
 	}
 
 	credential := options.Credential{
@@ -91,7 +94,7 @@ func (m *MongoClient) Initialize() *MongoClient {
 	clientOptions := options.Client().ApplyURI(dbServer).SetAuth(credential)
 	client, err := mongo.Connect(backgroundContext, clientOptions)
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 
 	ctx, _ := context.WithTimeout(backgroundContext, ConnectionTimeout)
@@ -99,9 +102,9 @@ func (m *MongoClient) Initialize() *MongoClient {
 	// Check the connection
 	err = client.Ping(ctx, nil)
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	} else {
-		log.Print("Connected To MONGODB")
+		logrus.Print("Connected To MongoDB")
 	}
 
 	m.Database = client.Database(dbName)
@@ -131,7 +134,7 @@ func (m *MongoClient) initAllCollection() {
 		},
 	})
 	if err != nil {
-		log.Fatal("Error Creating Index for Workflow Collection: ", err)
+		logrus.Fatal("Error Creating Index for Workflow Collection: ", err)
 	}
 
 	m.WorkflowTemplateCollection = m.Database.Collection(collections[WorkflowTemplateCollection])
@@ -145,7 +148,7 @@ func (m *MongoClient) initAllCollection() {
 		},
 	})
 	if err != nil {
-		log.Fatal("Error Creating Index for GitOps Collection : ", err)
+		logrus.Fatal("Error Creating Index for GitOps Collection : ", err)
 	}
 
 	m.MyHubCollection = m.Database.Collection(collections[MyHubCollection])
@@ -153,4 +156,16 @@ func (m *MongoClient) initAllCollection() {
 	m.PanelCollection = m.Database.Collection(collections[PanelCollection])
 	m.DashboardCollection = m.Database.Collection(collections[DashboardCollection])
 	m.ImageRegistryCollection = m.Database.Collection(collections[ImageRegistryCollection])
+	m.ServerConfigCollection = m.Database.Collection(collections[ServerConfigCollection])
+	_, err = m.ServerConfigCollection.Indexes().CreateMany(backgroundContext, []mongo.IndexModel{
+		{
+			Keys: bson.M{
+				"key": 1,
+			},
+			Options: options.Index().SetUnique(true),
+		},
+	})
+	if err != nil {
+		logrus.Fatal("Error Creating Index for Server Config Collection : ", err)
+	}
 }

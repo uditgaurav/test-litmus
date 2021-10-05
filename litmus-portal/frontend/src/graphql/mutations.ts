@@ -33,8 +33,14 @@ export const CREATE_USER = gql`
       username
       created_at
       updated_at
-      removed_at
+      deactivated_at
     }
+  }
+`;
+
+export const UPDATE_USER_STATE = gql`
+  mutation updateUserState($uid: String!, $isDeactivate: Boolean!) {
+    updateUserState(uid: $uid, isDeactivate: $isDeactivate)
   }
 `;
 
@@ -86,12 +92,6 @@ export const ACCEPT_INVITE = gql`
 export const DECLINE_INVITE = gql`
   mutation decline($member: MemberInput!) {
     declineInvitation(member: $member)
-  }
-`;
-
-export const DELETE_SCHEDULE = gql`
-  mutation deleteWorkflow($workflow_id: String!) {
-    deleteChaosWorkflow(workflowid: $workflow_id)
   }
 `;
 
@@ -264,13 +264,21 @@ export const DELETE_DATASOURCE = gql`
 
 export const CREATE_DASHBOARD = gql`
   mutation createDashBoard($createDBInput: createDBInput) {
-    createDashBoard(dashboard: $createDBInput)
+    createDashBoard(dashboard: $createDBInput) {
+      db_id
+    }
   }
 `;
 
 export const UPDATE_DASHBOARD = gql`
-  mutation updateDashboard($updataDBInput: updataDBInput) {
-    updateDashboard(dashboard: $updataDBInput)
+  mutation updateDashboard(
+    $updateDBInput: updateDBInput!
+    $chaosQueryUpdate: Boolean!
+  ) {
+    updateDashboard(
+      dashboard: $updateDBInput
+      chaosQueryUpdate: $chaosQueryUpdate
+    )
   }
 `;
 
@@ -299,6 +307,7 @@ export const ADD_IMAGE_REGISTRY = gql`
         image_repo_name
         image_registry_name
         image_registry_type
+        is_default
       }
     }
   }
@@ -319,7 +328,32 @@ export const UPDATE_IMAGE_REGISTRY = gql`
         image_repo_name
         image_registry_name
         image_registry_type
+        is_default
       }
     }
+  }
+`;
+
+export const SYNC_WORKFLOW = gql`
+  mutation syncWorkflow($workflowid: String!, $workflow_run_id: String!) {
+    syncWorkflow(workflowid: $workflowid, workflow_run_id: $workflow_run_id)
+  }
+`;
+
+export const DELETE_WORKFLOW = gql`
+  mutation deleteWorkflow($workflowid: String!, $workflow_run_id: String!) {
+    deleteChaosWorkflow(
+      workflowid: $workflowid
+      workflow_run_id: $workflow_run_id
+    )
+  }
+`;
+
+export const TERMINATE_WORKFLOW = gql`
+  mutation terminateWorkflow($workflowid: String!, $workflow_run_id: String) {
+    terminateChaosWorkflow(
+      workflowid: $workflowid
+      workflow_run_id: $workflow_run_id
+    )
   }
 `;

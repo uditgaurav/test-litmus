@@ -1,4 +1,10 @@
-import { Avatar, Typography } from '@material-ui/core';
+import { useLazyQuery } from '@apollo/client';
+import {
+  Avatar,
+  Checkbox,
+  FormControlLabel,
+  Typography,
+} from '@material-ui/core';
 import { ButtonOutlined, InputField, Modal } from 'litmus-ui';
 import localforage from 'localforage';
 import React, {
@@ -9,21 +15,26 @@ import React, {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
-import data from '../../../components/PredifinedWorkflows/data';
+import config from '../../../config';
+import { GET_EXPERIMENT_DATA, GET_TEMPLATE_BY_ID } from '../../../graphql';
 import { ChooseWorkflowRadio } from '../../../models/localforage/radioButton';
 import { WorkflowDetailsProps } from '../../../models/localforage/workflow';
+import { ExperimentDetail } from '../../../models/redux/myhub';
 import useActions from '../../../redux/actions';
 import * as AlertActions from '../../../redux/actions/alert';
 import * as WorkflowActions from '../../../redux/actions/workflow';
 import { RootState } from '../../../redux/reducers';
 import capitalize from '../../../utils/capitalize';
+import { getProjectID } from '../../../utils/getSearchParams';
 import { validateWorkflowName } from '../../../utils/validate';
+import * as ImageRegistryActions from '../../../redux/actions/image_registry';
 import useStyles from './styles';
 
 const WorkflowSettings = forwardRef((_, ref) => {
   const classes = useStyles();
   const [avatarModal, setAvatarModal] = useState<boolean>(false);
-
+  const [displayRegChange, setDisplayRegChange] = useState(true);
+  const projectID = getProjectID();
   // Workflow States
   const [name, setName] = useState<string>('');
   const [descriptionHeader, setDescriptionHeader] = useState<JSX.Element>(
@@ -35,6 +46,46 @@ const WorkflowSettings = forwardRef((_, ref) => {
   // Actions
   const workflowAction = useActions(WorkflowActions);
   const workflowData = useSelector((state: RootState) => state.workflowData);
+  const { manifest } = useSelector(
+    (state: RootState) => state.workflowManifest
+  );
+  const imageRegistry = useActions(ImageRegistryActions);
+  const imageRegistryData = useSelector(
+    (state: RootState) => state.selectedImageRegistry
+  );
+  const [updateRegistry, setUpdateRegistry] = useState(
+    imageRegistryData.update_registry
+  );
+  const [hubName, setHubName] = useState('');
+  // Query to get charts of selected MyHub
+  const [getWorkflowDetails] = useLazyQuery<ExperimentDetail>(
+    GET_EXPERIMENT_DATA,
+    {
+      fetchPolicy: 'cache-and-network',
+      onCompleted: (data) => {
+        if (data.getHubExperiment !== undefined) {
+          setName(data.getHubExperiment.Metadata.Name.toLowerCase());
+          setDescription(data.getHubExperiment.Spec.CategoryDescription);
+          setIcon(
+            `${config.grahqlEndpoint}/icon/${projectID}/${hubName}/predefined/${data.getHubExperiment.Metadata.Name}.png`
+          );
+          setCRDLink(data.getHubExperiment.Metadata.Name);
+        }
+      },
+    }
+  );
+
+  const [getSavedTemplateDetails] = useLazyQuery(GET_TEMPLATE_BY_ID, {
+    fetchPolicy: 'network-only',
+    onCompleted: (data) => {
+      if (data.GetTemplateManifestByID !== undefined) {
+        setName(data.GetTemplateManifestByID.template_name);
+        setDescription(data.GetTemplateManifestByID.template_description);
+        setIcon('./avatars/litmus.svg');
+        setCRDLink(data.GetTemplateManifestByID.template_id);
+      }
+    },
+  });
 
   const { t } = useTranslation();
   const alert = useActions(AlertActions);
@@ -78,31 +129,45 @@ const WorkflowSettings = forwardRef((_, ref) => {
 
   const initializeWithDefault = () => {
     localforage.getItem('selectedScheduleOption').then((value) => {
+      // Map over the list of predefined workflows and extract the name and detail
       if ((value as ChooseWorkflowRadio).selected === 'A') {
-        // Map over the list of predefined workflows and extract the name and detail
-        data.map((w) => {
-          if (w.workflowID.toString() === (value as ChooseWorkflowRadio).id) {
-            setName(w.title);
-            setDescription(w.details);
-            setIcon(w.urlToIcon);
-            setCRDLink(w.experimentPath);
-          }
-          return null;
+        localforage.getItem('selectedHub').then((hub) => {
+          setHubName(hub as string);
+          getWorkflowDetails({
+            variables: {
+              data: {
+                HubName: hub as string,
+                ProjectID: projectID,
+                ChartName: 'predefined',
+                ExperimentName: (value as ChooseWorkflowRadio).id,
+              },
+            },
+          });
         });
+        setDisplayRegChange(true);
+        workflowAction.setWorkflowManifest({ manifest: '' });
       }
       if ((value as ChooseWorkflowRadio).selected === 'B') {
+        getSavedTemplateDetails({
+          variables: {
+            data: (value as ChooseWorkflowRadio).id,
+          },
+        });
+        setDisplayRegChange(true);
         workflowAction.setWorkflowManifest({ manifest: '' });
       }
       if ((value as ChooseWorkflowRadio).selected === 'C') {
         setName('custom-chaos-workflow');
-        workflowAction.setWorkflowManifest({ manifest: '' });
+        workflowAction.setWorkflowManifest({ manifest: manifest ?? '' });
         setDescription('Custom Chaos Workflow');
         setIcon('./avatars/litmus.svg');
+        setDisplayRegChange(true);
       }
       if ((value as ChooseWorkflowRadio).selected === 'D') {
         setName('chaos-workflow');
         setDescription('Chaos Workflow');
         setIcon('./avatars/litmus.svg');
+        setDisplayRegChange(false);
       }
 
       /** Store a boolean value in local storage to serve as an indication
@@ -120,6 +185,7 @@ const WorkflowSettings = forwardRef((_, ref) => {
      *  and call checkForStoredData()
      *  else it will initializeWithDefault()
      */
+
     localforage.getItem('hasSetWorkflowData').then((isDataPresent) => {
       return isDataPresent ? checkForStoredData() : initializeWithDefault();
     });
@@ -157,6 +223,10 @@ const WorkflowSettings = forwardRef((_, ref) => {
       CRDLink,
     };
     localforage.setItem('workflow', workflowDetails);
+    imageRegistry.selectImageRegistry({
+      ...imageRegistryData,
+      update_registry: updateRegistry,
+    });
     if (!name.length) {
       alert.changeAlertState(true); // Workflow Name is empty and user clicked on Next
       return false;
@@ -203,6 +273,7 @@ const WorkflowSettings = forwardRef((_, ref) => {
           <div className={classes.inputDiv}>
             <div aria-details="spacer" className={classes.mainDiv}>
               <InputField
+                data-cy="WorkflowName"
                 title="workflowName"
                 label={t('createWorkflow.chooseWorkflow.label.workflowName')}
                 fullWidth
@@ -216,9 +287,11 @@ const WorkflowSettings = forwardRef((_, ref) => {
                 value={name}
               />
               <InputField
+                data-cy="WorkflowNamespace"
                 InputProps={{
                   readOnly: true,
                 }}
+                disabled
                 className={classes.nsInput}
                 label={t('createWorkflow.chooseWorkflow.label.namespace')}
                 value={workflowData.namespace}
@@ -226,6 +299,7 @@ const WorkflowSettings = forwardRef((_, ref) => {
             </div>
             <div aria-details="spacer" className={classes.descDiv} />
             <InputField
+              data-cy="WorkflowDescription"
               id="filled-workflowdescription-input"
               label={t('createWorkflow.chooseWorkflow.label.desc')}
               fullWidth
@@ -237,7 +311,27 @@ const WorkflowSettings = forwardRef((_, ref) => {
               multiline
               rows={8}
             />
-            <br />
+            <div aria-details="spacer" className={classes.checkboxDiv} />
+            {displayRegChange && (
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={updateRegistry}
+                    onChange={(event) => {
+                      return setUpdateRegistry(event.target.checked);
+                    }}
+                    className={classes.checkBoxDefault}
+                    name="checkedB"
+                    color="primary"
+                  />
+                }
+                label={
+                  <Typography className={classes.checkBoxText}>
+                    {t('createWorkflow.chooseWorkflow.enableRegistry')}
+                  </Typography>
+                }
+              />
+            )}
           </div>
         </div>
       </div>

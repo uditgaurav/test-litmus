@@ -1,43 +1,41 @@
-import Button from '@material-ui/core/Button';
-import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
 import Paper from '@material-ui/core/Paper'; // Temporary -> Should be replaced with Chart
 import Typography from '@material-ui/core/Typography';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
-import InfoFilledWrap from '../../components/InfoFilled/index';
 import Loader from '../../components/Loader';
-import { LocalQuickActionCard } from '../../components/LocalQuickActionCard';
 import Center from '../../containers/layouts/Center';
-import Scaffold from '../../containers/layouts/Scaffold/index';
+import Wrapper from '../../containers/layouts/Wrapper';
+import useActions from '../../redux/actions';
+import * as AnalyticsActions from '../../redux/actions/analytics';
 import { RootState } from '../../redux/reducers';
+import { getToken } from '../../utils/auth';
+import CommunityCards from '../../views/Community/CommunityCards';
+import CommunityFooter from '../../views/Community/CommunityFooter';
 import CommunityAnalyticsPlot from '../../views/Community/CommunityTimeSeriesPlot';
 import GeoMap from '../../views/Community/GeoMap/index';
+import InfoFilledWrap from '../../views/Community/InfoFilled/index';
 import useStyles from './styles';
-
-// Reusable Header Component
-const Header2: React.FC = ({ children }) => {
-  const classes = useStyles();
-  return (
-    <div>
-      <Typography className={classes.header2}>
-        <strong>{children}</strong>
-      </Typography>
-    </div>
-  );
-};
 
 const Community: React.FC = () => {
   const { t } = useTranslation();
   const classes = useStyles();
+  const token = getToken();
+  const analyticsAction = useActions(AnalyticsActions);
+
   const { loading, error } = useSelector(
     (state: RootState) => state.communityData
   );
 
+  useEffect(() => {
+    if (token !== '') {
+      analyticsAction.loadCommunityAnalytics();
+    }
+  }, [token]);
+
   if (loading) {
     return (
-      <Scaffold>
+      <>
         <div className={classes.root}>
           <div>
             <Typography variant="h3" className={classes.mainHeader}>
@@ -49,18 +47,17 @@ const Community: React.FC = () => {
             </div>
           </div>
         </div>
-      </Scaffold>
+      </>
     );
   }
   if (error) {
     return (
-      <Scaffold>
+      <Wrapper>
         <div className={classes.root}>
-          <div>
-            <Typography variant="h3" className={classes.mainHeader}>
-              {t('community.title')}
-            </Typography>
-          </div>
+          <Typography variant="h3" className={classes.mainHeader}>
+            {t('community.title')}
+          </Typography>
+
           <div className={classes.errorMessage}>
             <Center>
               <Typography variant="h4">
@@ -69,23 +66,25 @@ const Community: React.FC = () => {
             </Center>
           </div>
         </div>
-      </Scaffold>
+      </Wrapper>
     );
   }
 
   return (
-    <Scaffold>
+    <Wrapper>
       <div className={classes.root}>
-        <div>
-          <Typography variant="h3" className={classes.mainHeader}>
-            {t('community.title')}
-          </Typography>
-        </div>
+        <Typography variant="h3" className={classes.mainHeader}>
+          {t('community.title')}
+        </Typography>
 
         {/* Litmus Daily Insights */}
-        <section>
-          <Header2>{t('community.heading')}</Header2>
-          <Typography>{t('community.headingDesc')}</Typography>
+        <section className={classes.paper}>
+          <Typography className={classes.header2}>
+            {t('community.heading')}
+          </Typography>
+          <Typography className={classes.subHeading}>
+            {t('community.headingDesc')}
+          </Typography>
           <div className={classes.cardDiv}>
             <InfoFilledWrap />
           </div>
@@ -94,45 +93,13 @@ const Community: React.FC = () => {
         {/* Litmus Analytics Dashboard */}
         <section>
           <div className={classes.LitmusAnalyticsBlock}>
-            <Header2>{t('community.analyticDesc')}</Header2>
             <div className={classes.LitmusAnalyticsDiv}>
               <Paper className={classes.paper}>
+                <Typography className={classes.header2}>
+                  {t('community.analyticDesc')}
+                </Typography>
                 <CommunityAnalyticsPlot />
               </Paper>
-
-              <div>
-                <Card className={classes.card}>
-                  <CardContent className={classes.cardContent}>
-                    <div className={classes.imgDiv}>
-                      <img src="./icons/litmusPurple.svg" alt="litmus logo" />
-                    </div>
-                    <Typography
-                      variant="body1"
-                      component="p"
-                      className={classes.LitmusOnDev}
-                    >
-                      {t('community.litmusChaos')}
-                      <br />
-                      <span className={classes.LitmusOnDevSpan}>on </span>
-                      <img
-                        className={classes.devToLogo}
-                        src="./icons/devto.svg"
-                        alt="DevTo logo"
-                      />
-                    </Typography>
-                  </CardContent>
-                  <a
-                    href="https://dev.to/litmus-chaos"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={classes.devToLink}
-                  >
-                    <Button variant="contained" className={classes.followBtn}>
-                      {t('community.follow')}
-                    </Button>
-                  </a>
-                </Card>
-              </div>
             </div>
           </div>
         </section>
@@ -140,19 +107,22 @@ const Community: React.FC = () => {
         {/* Litmus Used Statistics all over the World */}
         <section>
           <div className={classes.LitmusUsedBlock}>
-            <Header2>{t('community.statsHeading')}</Header2>
             <div className={classes.LitmusUsedDiv}>
               <Paper className={classes.paper}>
+                <Typography className={classes.header2}>
+                  {t('community.statsHeading')}
+                </Typography>
                 <GeoMap />
               </Paper>
-              <div className={classes.quickActionCard}>
-                <LocalQuickActionCard variant="community" />
-              </div>
             </div>
           </div>
         </section>
+        <section>
+          <CommunityCards />
+        </section>
+        <CommunityFooter />
       </div>
-    </Scaffold>
+    </Wrapper>
   );
 };
 

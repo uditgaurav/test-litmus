@@ -1,47 +1,12 @@
 import { makeStyles, Theme } from '@material-ui/core';
 
 const useStyles = makeStyles((theme: Theme) => ({
-  rootContainer: {
-    position: 'fixed',
-    width: '100%',
-    height: '100%',
-    background: theme.palette.loginBackground,
-  },
-  rootDiv: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-  },
-  rootLitmusText: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    '& img': {
-      marginBottom: theme.spacing(1.5),
-    },
-  },
-  HeaderText: {
-    maxWidth: '23.56rem',
-    fontWeight: 500,
-    fontSize: '2rem',
-    color: theme.palette.text.secondary,
-  },
-  litmusText: {
-    maxWidth: '23.56rem',
-    fontWeight: 400,
-    fontSize: '1rem',
-    marginTop: theme.spacing(1.875),
-    color: theme.palette.text.secondary,
-  },
   inputDiv: {
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    marginTop: theme.spacing(5),
-    marginLeft: theme.spacing(7.5),
+    maxWidth: '23.75rem',
+    margin: '2rem auto',
   },
   inputValue: {
-    margin: theme.spacing(1.875, 0, 1.875, 0),
+    marginBottom: theme.spacing(1.75),
     '& .MuiFormHelperText-root': {
       background: theme.palette.loginBackground,
       marginTop: 0,
@@ -55,7 +20,6 @@ const useStyles = makeStyles((theme: Theme) => ({
     marginTop: theme.spacing(1.875),
     background: theme.palette.primary.light,
     color: theme.palette.text.secondary,
-    maxWidth: '8rem',
     '&:disabled': {
       PointerEvents: 'none',
       background: theme.palette.primary.light,
@@ -65,8 +29,13 @@ const useStyles = makeStyles((theme: Theme) => ({
       background: theme.palette.primary.light,
     },
   },
+  skipButton: {
+    padding: theme.spacing(1.25, 0),
+    marginTop: theme.spacing(1.875),
+    color: theme.palette.text.secondary,
+  },
   buttonGroup: {
-    width: '100%',
+    width: '25rem',
     color: theme.palette.text.secondary,
     display: 'flex',
     justifyContent: 'space-between',

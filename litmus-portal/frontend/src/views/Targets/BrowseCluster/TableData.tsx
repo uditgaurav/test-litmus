@@ -1,9 +1,10 @@
 import { IconButton, TableCell, Tooltip, Typography } from '@material-ui/core';
-import { ButtonFilled, ButtonOutlined, Modal } from 'litmus-ui';
+import { ButtonFilled, ButtonOutlined, LightPills, Modal } from 'litmus-ui';
 import moment from 'moment';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Cluster } from '../../../models/graphql/clusterData';
+import capitalize from '../../../utils/capitalize';
 import timeDifferenceForDate from '../../../utils/datesModifier';
 import { getProjectRole } from '../../../utils/getSearchParams';
 import useStyles from './styles';
@@ -42,25 +43,29 @@ const TableData: React.FC<TableDataProps> = ({ data, deleteRow }) => {
     <>
       <TableCell className={classes.tableDataStatus}>
         {data.is_cluster_confirmed === false ? (
-          <Typography className={`${classes.check} ${classes.pending}`}>
-            {t('workflowCluster.header.formControl.menu6')}
-          </Typography>
+          <LightPills
+            variant="warning"
+            label={t('workflowCluster.header.formControl.menu6')}
+          />
         ) : data.is_cluster_confirmed === true && data.is_active ? (
-          <Typography className={`${classes.check} ${classes.active}`}>
-            {t('workflowCluster.header.formControl.menu1')}
-          </Typography>
+          <LightPills
+            variant="success"
+            label={t('workflowCluster.header.formControl.menu1')}
+          />
         ) : (
-          <Typography className={`${classes.check} ${classes.notactive}`}>
-            {t('workflowCluster.header.formControl.menu2')}
-          </Typography>
+          <LightPills
+            variant="danger"
+            label={t('workflowCluster.header.formControl.menu2')}
+          />
         )}
       </TableCell>
       <TableCell className={classes.workflowNameData}>
         <Typography>{data.cluster_name}</Typography>
       </TableCell>
-      <TableCell className={classes.stepsDataTime}>
-        {formatDate(data.updated_at)}
+      <TableCell>
+        <Typography>{capitalize(data.agent_scope)}</Typography>
       </TableCell>
+      <TableCell>{formatDate(data.updated_at)}</TableCell>
       <TableCell>
         <Typography className={classes.stepsData}>
           {data.no_of_workflows}
@@ -69,7 +74,7 @@ const TableData: React.FC<TableDataProps> = ({ data, deleteRow }) => {
       <TableCell className={classes.stepsDataschedule}>
         <Typography>{data.no_of_schedules}</Typography>
       </TableCell>
-      <TableCell className={classes.stepsData}>
+      <TableCell>
         {data.last_workflow_timestamp === '0' ? (
           <Typography>Not Yet</Typography>
         ) : (
@@ -120,7 +125,7 @@ const TableData: React.FC<TableDataProps> = ({ data, deleteRow }) => {
                 }
               >
                 <div className={classes.body}>
-                  <img src="/icons/DisconnectIcon.svg" alt="disconnect" />
+                  <img src="./icons/DisconnectIcon.svg" alt="disconnect" />
                   <div className={classes.text}>
                     <Typography className={classes.typo} align="center">
                       {t('targets.modalDelete.head1')} <br />

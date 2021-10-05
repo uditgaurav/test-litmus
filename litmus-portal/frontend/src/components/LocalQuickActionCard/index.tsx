@@ -9,7 +9,7 @@ import * as TabActions from '../../redux/actions/tabs';
 import { history } from '../../redux/configureStore';
 import { getProjectID, getProjectRole } from '../../utils/getSearchParams';
 
-type Variant = 'homePage' | 'returningHome' | 'analytics' | 'community';
+type Variant = 'homePage' | 'returningHome' | 'observability' | 'community';
 
 interface LocalQuickActionCardProps {
   variant?: Variant;
@@ -26,7 +26,7 @@ const LocalQuickActionCard: React.FC<LocalQuickActionCardProps> = ({
   const userRole = getProjectRole();
   const homePage = variant === 'homePage';
   const returningHome = variant === 'returningHome';
-  const analytics = variant === 'analytics';
+  const observability = variant === 'observability';
   const community = variant === 'community';
   const emptyData: QuickActionCardProps = {
     src: '',
@@ -34,13 +34,13 @@ const LocalQuickActionCard: React.FC<LocalQuickActionCardProps> = ({
     text: '',
   };
   const quickActionData: Array<QuickActionCardProps> = [
-    analytics
+    observability
       ? {
           src: './icons/addDataSource.svg',
           alt: 'data source',
           onClick: () =>
             history.push({
-              pathname: '/analytics/datasource/select',
+              pathname: '/observability/datasource/select',
               search: `?projectID=${projectID}&projectRole=${userRole}`,
             }),
           text: t('quickActionCard.addDataSource'),
@@ -48,7 +48,7 @@ const LocalQuickActionCard: React.FC<LocalQuickActionCardProps> = ({
       : emptyData,
     returningHome
       ? {
-          src: '/icons/calendarWorkflowIcon.svg',
+          src: './icons/calendarWorkflowIcon.svg',
           alt: 'workflow',
           onClick: () =>
             history.push({
@@ -58,9 +58,9 @@ const LocalQuickActionCard: React.FC<LocalQuickActionCardProps> = ({
           text: t('quickActionCard.scheduleWorkflow'),
         }
       : emptyData,
-    homePage || returningHome || analytics
+    homePage || returningHome || observability
       ? {
-          src: '/icons/target.svg',
+          src: './icons/target.svg',
           alt: 'agent',
           onClick: () =>
             history.push({
@@ -72,10 +72,10 @@ const LocalQuickActionCard: React.FC<LocalQuickActionCardProps> = ({
       : emptyData,
 
     // TODO: settings only accessible by Owner
-    (homePage || returningHome || community || analytics) &&
+    (homePage || returningHome || community || observability) &&
     getProjectRole() === Role.owner
       ? {
-          src: '/icons/teamMember.svg',
+          src: './icons/teamMember.svg',
           alt: 'team',
           onClick: () => {
             tabs.changeSettingsTabs(1);
@@ -89,29 +89,25 @@ const LocalQuickActionCard: React.FC<LocalQuickActionCardProps> = ({
       : emptyData,
     homePage || community
       ? {
-          src: '/icons/survey.svg',
+          src: './icons/survey.svg',
           alt: 'survey',
           onClick: () => window.open(constants.FeedbackForm),
           text: t('quickActionCard.quickSurvey'),
         }
       : emptyData,
-    homePage || community || analytics
+    homePage || community || observability
       ? {
-          src: '/icons/docs.svg',
+          src: './icons/docs.svg',
           alt: 'docs',
-          onClick: () =>
-            window.open('https://docs.litmuschaos.io/docs/getstarted'),
+          onClick: () => window.open('https://docs.litmuschaos.io/'),
           text: t('quickActionCard.readDocs'),
         }
       : emptyData,
     community
       ? {
           src: './icons/docs.svg',
-          alt: 'docs',
-          onClick: () =>
-            window.open(
-              'https://docs.litmus.com/docs/litmus-api-documentation'
-            ),
+          alt: 'api-docs',
+          onClick: () => window.open('/api-docs/index.html'),
           text: t('quickActionCard.readAPIDocs'),
         }
       : emptyData,

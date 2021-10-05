@@ -1,9 +1,10 @@
+import { Tooltip } from '@material-ui/core';
 import Snackbar from '@material-ui/core/Snackbar';
 import Typography from '@material-ui/core/Typography';
 import MuiAlert, { AlertProps } from '@material-ui/lab/Alert';
 import { ButtonFilled, ButtonOutlined } from 'litmus-ui';
 import localforage from 'localforage';
-import React, { useEffect, useRef } from 'react';
+import React, { lazy, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 import Row from '../../containers/layouts/Row';
@@ -11,16 +12,38 @@ import useActions from '../../redux/actions';
 import * as AlertActions from '../../redux/actions/alert';
 import { RootState } from '../../redux/reducers';
 import { getProjectRole } from '../../utils/getSearchParams';
-import ChooseAWorkflowAgent from '../../views/CreateWorkflow/ChooseAWorkflowAgent';
-import ChooseWorkflow from '../../views/CreateWorkflow/ChooseWorkflow/index';
-import ReliablityScore from '../../views/CreateWorkflow/ReliabilityScore';
-import ScheduleWorkflow from '../../views/CreateWorkflow/ScheduleWorkflow';
-import TuneWorkflow from '../../views/CreateWorkflow/TuneWorkflow/index';
-import VerifyCommit from '../../views/CreateWorkflow/VerifyCommit';
-import WorkflowSettings from '../../views/CreateWorkflow/WorkflowSettings';
 import { LitmusStepper } from '../LitmusStepper';
 import Loader from '../Loader';
 import useStyles from './styles';
+import { SuspenseLoader } from '../SuspenseLoader';
+
+const ChooseAWorkflowAgent = lazy(
+  () => import('../../views/CreateWorkflow/ChooseAWorkflowAgent')
+);
+
+const ChooseWorkflow = lazy(
+  () => import('../../views/CreateWorkflow/ChooseWorkflow/index')
+);
+
+const ReliablityScore = lazy(
+  () => import('../../views/CreateWorkflow/ReliabilityScore')
+);
+
+const ScheduleWorkflow = lazy(
+  () => import('../../views/CreateWorkflow/ScheduleWorkflow')
+);
+
+const TuneWorkflow = lazy(
+  () => import('../../views/CreateWorkflow/TuneWorkflow/index')
+);
+
+const VerifyCommit = lazy(
+  () => import('../../views/CreateWorkflow/VerifyCommit')
+);
+
+const WorkflowSettings = lazy(
+  () => import('../../views/CreateWorkflow/WorkflowSettings')
+);
 
 interface ControlButtonProps {
   position: string;
@@ -123,39 +146,63 @@ const WorkflowStepper = () => {
     All steps in the middle will have next and back buttons
   * */
 
-  const ControlButton: React.FC<ControlButtonProps> = ({ position }) => {
+  const ControlButton: React.FC = () => {
     return (
-      <>
-        {activeStep === 0 && position === 'top' ? ( // Only show Next button at Top for Step 0
-          <ButtonFilled onClick={() => handleNext()}>Next</ButtonFilled>
-        ) : activeStep === 0 && position !== 'top' ? ( // Don't show Next button at Bottom for Step 0
-          <></>
-        ) : activeStep === 1 &&
-          window.screen.height < 1080 &&
-          position !== 'top' ? (
-          <></>
+      <div data-cy="ControlButtons">
+        {activeStep === 0 ? ( // Only show Next button at Top for Step 0
+          <ButtonFilled className={classes.btn} onClick={() => handleNext()}>
+            Next
+          </ButtonFilled>
         ) : activeStep === steps.length - 1 ? ( // Show Finish button at Bottom for Last Step
           loading ? (
-            <ButtonFilled disabled onClick={() => handleNext()}>
+            <ButtonFilled
+              className={classes.btn}
+              disabled
+              onClick={() => handleNext()}
+            >
               Finish <span style={{ marginLeft: '0.5rem' }} />{' '}
               <Loader size={20} />
             </ButtonFilled>
           ) : (
-            <ButtonFilled onClick={() => handleNext()}>Finish</ButtonFilled>
+            <ButtonFilled className={classes.btn} onClick={() => handleNext()}>
+              Finish
+            </ButtonFilled>
           )
-        ) : position === 'top' ? ( // Apply headerButtonWrapper style for top button's div
+        ) : activeStep === 2 ? (
           <div className={classes.headerButtonWrapper} aria-label="buttons">
-            <ButtonOutlined onClick={() => handleBack()}>Back</ButtonOutlined>
-            <ButtonFilled onClick={() => handleNext()}>Next</ButtonFilled>
+            <Tooltip
+              title="All selected Workflow Data will be lost"
+              placement="top"
+              leaveDelay={300}
+            >
+              <div>
+                <ButtonOutlined
+                  className={classes.btn}
+                  onClick={() => handleBack()}
+                >
+                  Back
+                </ButtonOutlined>
+              </div>
+            </Tooltip>
+            <ButtonFilled className={classes.btn} onClick={() => handleNext()}>
+              Next
+            </ButtonFilled>
           </div>
         ) : (
-          // Apply bottomButtonWrapper style for top button's div
-          <div className={classes.bottomButtonWrapper} aria-label="buttons">
-            <ButtonOutlined onClick={() => handleBack()}>Back</ButtonOutlined>
-            <ButtonFilled onClick={() => handleNext()}>Next</ButtonFilled>
+          // Apply headerButtonWrapper style for top button's div
+          <div className={classes.headerButtonWrapper} aria-label="buttons">
+            <ButtonOutlined
+              className={classes.btn}
+              onClick={() => handleBack()}
+            >
+              Back
+            </ButtonOutlined>
+            <ButtonFilled className={classes.btn} onClick={() => handleNext()}>
+              Next
+            </ButtonFilled>
           </div>
         )}
-      </>
+      </div>
     );
   };
 
@@ -220,7 +267,7 @@ const WorkflowStepper = () => {
           <Typography className={classes.header}>
             {t(`workflowStepper.scheduleNewChaosWorkflow`)}
           </Typography>
-          <ControlButton position="top" />
+          <ControlButton />
         </Row>
       </div>
       <br />
@@ -233,7 +280,9 @@ const WorkflowStepper = () => {
         handleNext={() => handleNext()}
         finishAction={() => {}}
       >
-        {getStepContent(activeStep, childRef)}
+        <SuspenseLoader style={{ height: '50vh' }}>
+          {getStepContent(activeStep, childRef)}
+        </SuspenseLoader>
       </LitmusStepper>
     </div>
   );

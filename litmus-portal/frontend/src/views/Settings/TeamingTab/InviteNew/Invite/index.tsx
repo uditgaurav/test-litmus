@@ -87,6 +87,7 @@ const Invite: React.FC<InviteProps> = ({ handleModal }) => {
 
   useQuery(ALL_USERS, {
     skip: !dataB,
+    fetchPolicy: 'cache-and-network',
     onCompleted: (data) => {
       const memberList = new Map();
       const users: UserInvite[] = [];
@@ -110,17 +111,15 @@ const Invite: React.FC<InviteProps> = ({ handleModal }) => {
   });
 
   // mutation to send invitation to selected users
-  const [
-    SendInvite,
-    { error: errorB, loading: loadingB },
-  ] = useMutation<MemberInviteNew>(SEND_INVITE, {
-    refetchQueries: [
-      {
-        query: GET_PROJECT,
-        variables: { projectID },
-      },
-    ],
-  });
+  const [SendInvite, { error: errorB, loading: loadingB }] =
+    useMutation<MemberInviteNew>(SEND_INVITE, {
+      refetchQueries: [
+        {
+          query: GET_PROJECT,
+          variables: { projectID },
+        },
+      ],
+    });
 
   // Checks if the user the already selected or not
   const isSelected = (user: UserInvite) => {

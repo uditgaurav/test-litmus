@@ -10,8 +10,9 @@ import {
   TableHead,
   TableRow,
   Typography,
+  useTheme,
 } from '@material-ui/core';
-import { ButtonOutlined } from 'litmus-ui';
+import { ButtonOutlined, Icon } from 'litmus-ui';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
@@ -24,17 +25,12 @@ import AddProbe from '../AddProbe';
 import useStyles from './styles';
 
 interface SteadyStateProps {
-  engineIndex: number;
   gotoStep: (page: number) => void;
-  closeStepper: () => void;
 }
 
-const SteadyState: React.FC<SteadyStateProps> = ({
-  engineIndex,
-  gotoStep,
-  closeStepper,
-}) => {
+const SteadyState: React.FC<SteadyStateProps> = ({ gotoStep }) => {
   const classes = useStyles();
+  const theme = useTheme();
   const { t } = useTranslation();
   const workflow = useActions(WorkflowActions);
 
@@ -49,21 +45,19 @@ const SteadyState: React.FC<SteadyStateProps> = ({
       : []
   );
 
+  const [isAddButtonClicked, setIsAddButtonClicked] = useState<boolean>(false);
+
   // State varible to handle the Probe Modal
   const [addProbe, setAddProbe] = useState<boolean>(false);
+  const [selectedProbeIndex, setSelectedProbeIndex] = useState<number>(0);
   const handleClose = () => {
+    setIsAddButtonClicked(false);
     setAddProbe(false);
   };
 
-  // handleManiYAMLChange allows to update the main manifest
-  // with the changes in individual Chaos Engines
+  // handleManiYAMLChange allows to update the changes in individual Chaos Engines
   const handleMainYAMLChange = () => {
-    const mainManifest = YAML.parse(manifest.manifest);
-    mainManifest.spec.templates[
-      engineIndex
-    ].inputs.artifacts[0].raw.data = YAML.stringify(chaosEngine);
     workflow.setWorkflowManifest({
-      manifest: YAML.stringify(mainManifest),
       engineYAML: YAML.stringify(chaosEngine),
     });
   };
@@ -71,15 +65,14 @@ const SteadyState: React.FC<SteadyStateProps> = ({
   // State variable to store Probe Data
   const [probeDetails, setProbeDetails] = useState<object>();
   const [probeProperties, setProbeProperties] = useState({});
+  const [edit, setEdit] = useState<boolean>(false);
 
   // State variable to handle the Probe Details Popover
   const [popAnchorEl, setPopAnchorEl] = React.useState<null | HTMLElement>(
     null
   );
-  const [
-    propertyAnchorEl,
-    setPropertyPopAnchorEl,
-  ] = React.useState<null | HTMLElement>(null);
+  const [propertyAnchorEl, setPropertyPopAnchorEl] =
+    React.useState<null | HTMLElement>(null);
   const isOpen = Boolean(popAnchorEl);
   const isPropertyOpen = Boolean(propertyAnchorEl);
   const id = isOpen ? 'simple-popover' : undefined;
@@ -103,17 +96,18 @@ const SteadyState: React.FC<SteadyStateProps> = ({
   // Function to handle add probes operation
   const handleAddProbe = (probes: any) => {
     setProbesData(probes);
+    setIsAddButtonClicked(false);
     setAddProbe(false);
   };
 
-  const handleStepperClose = () => {
+  const handleNext = () => {
     chaosEngine.spec.experiments[0].spec.probe = probesData;
     handleMainYAMLChange();
-    return closeStepper();
+    gotoStep(3);
   };
 
   return (
-    <div>
+    <div data-cy="SteadyState">
       <TableContainer className={classes.table} component={Paper}>
         <Table aria-label="simple table">
           <TableHead>
@@ -134,10 +128,11 @@ const SteadyState: React.FC<SteadyStateProps> = ({
                 {t('createWorkflow.tuneWorkflow.steadyState.properties')}
               </TableCell>
               <TableCell align="left" />
+              <TableCell align="left" />
             </TableRow>
           </TableHead>
           <TableBody>
-            {probesData?.length ? (
+            {probesData && probesData.length ? (
               probesData.map((probe: any, index: number) => (
                 <TableRow key={probe.name}>
                   <TableCell component="th" scope="row">
@@ -224,13 +219,28 @@ const SteadyState: React.FC<SteadyStateProps> = ({
                   <TableCell>
                     <IconButton
                       onClick={() => {
+                        setEdit(true);
+                        setSelectedProbeIndex(index);
+                        setAddProbe(true);
+                      }}
+                    >
+                      <Icon
+                        name="pencil"
+                        size="lg"
+                        color={theme.palette.text.hint}
+                      />
+                    </IconButton>
+                  </TableCell>
+                  <TableCell>
+                    <IconButton
+                      onClick={() => {
                         deleteProbe(index);
                       }}
                     >
-                      <img
-                        src="/icons/bin-red-delete.svg"
-                        alt="delete"
-                        className={classes.deleteIcon}
+                      <Icon
+                        name="trash"
+                        size="lg"
+                        color={theme.palette.error.main}
                       />
                     </IconButton>
                   </TableCell>
@@ -238,7 +248,7 @@ const SteadyState: React.FC<SteadyStateProps> = ({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5}>
+                <TableCell colSpan={6}>
                   <Typography align="center">
                     {t('createWorkflow.tuneWorkflow.steadyState.addProbe')}
                   </Typography>
@@ -251,7 +261,9 @@ const SteadyState: React.FC<SteadyStateProps> = ({
       <br />
       <ButtonOutlined
         onClick={() => {
+          setEdit(false);
           setAddProbe(true);
+          setIsAddButtonClicked(true);
         }}
         className={classes.btn1}
       >
@@ -260,7 +272,15 @@ const SteadyState: React.FC<SteadyStateProps> = ({
         </Typography>
       </ButtonOutlined>
       <AddProbe
-        probesValue={probesData}
+        isEdit={edit}
+        addButtonState={isAddButtonClicked}
+        editIndex={selectedProbeIndex}
+        allProbesData={probesData}
+        probesValue={
+          probesData && probesData.length
+            ? probesData[selectedProbeIndex]
+            : probesData
+        }
         addProbe={(probes: any) => handleAddProbe(probes)}
         handleClose={handleClose}
         open={addProbe}
@@ -272,10 +292,10 @@ const SteadyState: React.FC<SteadyStateProps> = ({
         <Button
           variant="contained"
           color="primary"
-          onClick={() => handleStepperClose()}
+          onClick={() => handleNext()}
           className={classes.button}
         >
-          {t('createWorkflow.tuneWorkflow.steadyState.finish')}
+          Next
         </Button>
       </div>
     </div>

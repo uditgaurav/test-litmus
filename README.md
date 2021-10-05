@@ -1,10 +1,10 @@
-<img alt="LitmusChaos" src="https://landscape.cncf.io/logos/litmus.svg" width="200" align="left">
+<img alt="LitmusChaos" src="https://avatars.githubusercontent.com/u/49853472?s=200&v=4" width="200" align="left">
 
 # Litmus
-### Cloud-Native Chaos Engineering
+### Open Source Chaos Engineering Platform
 
 [![Slack Channel](https://img.shields.io/badge/Slack-Join-purple)](https://slack.litmuschaos.io)
-[![CircleCI](https://circleci.com/gh/litmuschaos/litmus/tree/master.svg?style=shield)](https://app.circleci.com/pipelines/github/litmuschaos/litmus)
+![GitHub Workflow](https://github.com/litmuschaos/litmus/actions/workflows/push.yml/badge.svg?branch=master)
 [![Docker Pulls](https://img.shields.io/docker/pulls/litmuschaos/chaos-operator.svg)](https://hub.docker.com/r/litmuschaos/chaos-operator)
 [![GitHub stars](https://img.shields.io/github/stars/litmuschaos/litmus?style=social)](https://github.com/litmuschaos/litmus/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/litmuschaos/litmus)](https://github.com/litmuschaos/litmus/issues)
@@ -22,52 +22,114 @@
 
 ## Overview
 
-Litmus is a toolset to do cloud-native chaos engineering. Litmus provides tools to orchestrate chaos on Kubernetes to help SREs find weaknesses in their deployments. SREs use Litmus to run chaos experiments initially in the staging environment and eventually in production to find bugs, vulnerabilities. Fixing the weaknesses leads to increased resilience of the system.
+LitmusChaos is an open source Chaos Engineering platform that enables teams to identify weaknesses & potential outages in infrastructures by 
+inducing chaos tests in a controlled way. Developers & SREs can practice Chaos Engineering with Litmus as it is easy to use, based on modern 
+chaos engineering principles & community collaborated. It is 100% open source & a CNCF project.
 
-Litmus takes a cloud-native approach to create, manage and monitor chaos. Chaos is orchestrated using the following Kubernetes Custom Resource Definitions (**CRDs**):
+Litmus takes a cloud-native approach to create, manage and monitor chaos. The platform itself runs as a set of microservices and uses Kubernetes 
+custom resources to define the chaos intent, as well as the steady state hypothesis. 
 
-- **ChaosEngine**: A resource to link a Kubernetes application or Kubernetes node to a ChaosExperiment. ChaosEngine is watched by Litmus' Chaos-Operator which then invokes Chaos-Experiments
-- **ChaosExperiment**: A resource to group the configuration parameters of a chaos experiment. ChaosExperiment CRs are created by the operator when experiments are invoked by ChaosEngine.
-- **ChaosResult**: A resource to hold the results of a chaos-experiment. The Chaos-exporter reads the results and exports the metrics into a configured Prometheus server.
+At a high-level, Litmus comprises of:  
 
-Chaos experiments are hosted on <a href="https://hub.litmuschaos.io" target="_blank">hub.litmuschaos.io</a>. It is a central hub where the application developers or vendors share their chaos experiments so that their users can use them to increase the resilience of the applications in production.
+- **Chaos Control Plane**: A centralized chaos management tool called chaos-center, which helps construct, schedule and visualize Litmus chaos workflows  
+- **Chaos Execution Plane Services**: Made up of a chaos agent and multiple operators that execute & monitor the experiment within a defined 
+  target Kubernetes environment. 
 
-![Litmus workflow](/images/litmus-arch_1.png)
+![architecture summary](/images/litmus-control-and-execution-plane-overview.png)
+
+At the heart of the platform are the following chaos custom resources: 
+
+- **ChaosExperiment**: A resource to group the configuration parameters of a particular fault. ChaosExperiment CRs are essentially installable templates 
+  that describe the library carrying out the fault, indicate permissions needed to run it & the defaults it will operate with. Through the ChaosExperiment,  Litmus supports BYOC (bring-your-own-chaos) that helps integrate (optional) any third-party tooling to perform the fault injection. 
+
+- **ChaosEngine**: A resource to link a Kubernetes application workload/service, node or an infra component to a fault described by the ChaosExperiment. 
+  It also provides options to tune the run properties and specify the steady state validation constraints using 'probes'. ChaosEngine is watched by the 
+  Chaos-Operator, which reconciles it (triggers experiment execution) via runners. 
+
+The ChaosExperiment & ChaosEngine CRs are embedded within a Workflow object that can string together one or more experiments in a desired order.
+
+- **ChaosResult**: A resource to hold the results of the experiment run. It provides details of the success of each validation constraint, 
+  the revert/rollback status of the fault as well as a verdict. The Chaos-exporter reads the results and exposes information as prometheus metrics. 
+  ChaosResults are especially useful during automated runs. 
+
+ChaosExperiment CRs are hosted on <a href="https://hub.litmuschaos.io" target="_blank">hub.litmuschaos.io</a>. It is a central hub where the 
+application developers or vendors share their chaos experiments so that their users can use them to increase the resilience of the applications 
+in production.
+
+![chaos-operator-flow](/images/chaos-operator-flow.png)
 
 ## Use cases
 
 - **For Developers**: To run chaos experiments during application development as an extension of unit testing or integration testing.
-- **For CI pipeline builders**: To run chaos as a pipeline stage to find bugs when the application is subjected to fail paths in a pipeline.
-- **For SREs**: To plan and schedule chaos experiments into the application and/or surrounding infrastructure. This practice identifies the weaknesses in the system and increases resilience.
+- **For CI/CD pipeline builders**: To run chaos as a pipeline stage to find bugs when the application is subjected to fail paths in a pipeline.
+- **For SREs**: To plan and schedule chaos experiments into the application and/or surrounding infrastructure. This practice identifies the weaknesses 
+  in the deployment system and increases resilience.
 
 ## Getting Started with Litmus
 
-[![IMAGE ALT TEXT](images/maxresdefault.jpg)](https://youtu.be/W5hmNbaYPfM)
-
-Check out the <a href="https://docs.litmuschaos.io/docs/next/getstarted.html" target="_blank">Litmus Docs</a> to get started.
+Check out the <a href="https://docs.litmuschaos.io/docs/introduction/what-is-litmus" target="_blank">Litmus Docs</a> to get started.
 
 ## Contributing to Chaos Hub
 
 Check out the <a href="https://github.com/litmuschaos/community-charts/blob/master/CONTRIBUTING.md" target="_blank">Contributing Guidelines for the Chaos Hub</a>
+
+
+## Community
+
+Community Resources:
+
+Feel free to reach out if you have any queries,concerns, or feature requests
+
+- Follow LitmusChaos on Twitter [@LitmusChaos](https://twitter.com/LitmusChaos).
+
+- Subscribe to the [LitmusChaos YouTube channel](https://www.youtube.com/channel/UCa57PMqmz_j0wnteRa9nCaw) for regular updates & meeting recordings. 
+
+- To join our [Slack Community](https://slack.litmuschaos.io/) and meet our community members, put forward your questions & opinions, join the #litmus channel on the [Kubernetes Slack](https://slack.k8s.io/). 
+### Community Meetings
+The Litmus community meets on the third wednesday of every month at 10:00PM IST/6:30 PM CEST/9:30 AM PST.
+
+- [Sync Up Meeting Link](https://zoom.us/j/91358162694)
+- [Sync Up Agenda & Meeting Notes](https://hackmd.io/a4Zu_sH4TZGeih-xCimi3Q)
+- [Release Tracker](https://github.com/litmuschaos/litmus/milestones)
+
+### Videos
+
+- [Litmus 2 - Chaos Engineering Meets Argo Workflows](https://youtu.be/B8DfYnDh2F4) @ [DevOps Toolkit](https://youtube.com/c/devopstoolkit)
+- [Hands-on with Litmus 2.0 | Rawkode Live](https://youtu.be/D0t3emVLLko) @ [Rawkode Academy](https://www.youtube.com/channel/UCrber_mFvp_FEF7D9u8PDEA)
+- [Introducing LitmusChaos 2.0 / Dok Talks #74](https://youtu.be/97BiCNtJbDw) @ [DoK.community](https://www.youtube.com/channel/UCUnXJbHQ89R2uSfKsqQwGvQ)
+- [Introduction to Cloud Native Chaos Engineering](https://youtu.be/LK0oDLQE4S8) @ [Kunal Kushwaha](https://www.youtube.com/channel/UCBGOUQHNNtNGcGzVq5rIXjw)
+- [#EveryoneCanContribute cafe: Litmus - Chaos Engineering for your Kubernetes](https://youtu.be/IiyrEiK4stQ) @ [GitLab Unfiltered](https://www.youtube.com/channel/UCMtZ0sc1HHNtGGWZFDRTh5A)
+- [Litmus - Chaos Engineering for Kubernetes (CNCFMinutes 9)](https://youtu.be/rDQ9XKbSJIc) @ [Saiyam Pathak](https://www.youtube.com/channel/UCi-1nnN0eC9nRleXdZA6ncg)
+- [Chaos Engineering with Litmus Chaos by Prithvi Raj || HACKODISHA Workshop](https://youtu.be/eyAG0svCsQA) @ [Webwiz](https://www.youtube.com/channel/UC9yM_PkV0QIIsPA3qPrp)
+
+[And More....](https://www.youtube.com/channel/UCa57PMqmz_j0wnteRa9nCaw)
+
+### Blogs
+
+- CNCF: [Introduction to LitmusChaos](https://www.cncf.io/blog/2020/08/28/introduction-to-litmuschaos/)
+- Hackernoon: [Manage and Monitor Chaos via Litmus Custom Resources](https://hackernoon.com/solid-tips-on-how-to-manage-and-monitor-chaos-via-litmus-custom-resources-5g1s33m9)
+- [Observability Considerations in Chaos: The Metrics Story](https://dev.to/ksatchit/observability-considerations-in-chaos-the-metrics-story-6cb)
+
+Community Blogs:
+
+- Daniyal Rayn: [Do I need Chaos Engineering on my environment? Trust me you need it!](https://maveric-systems.com/blog/do-i-need-chaos-engineering-on-my-environment-trust-me-you-need-it/)
+- LiveWyer: [LitmusChaos Showcase: Chaos Experiments in a Helm Chart Test Suite](https://livewyer.io/blog/2021/03/22/litmuschaos-showcase-chaos-experiments-in-a-helm-chart-test-suite/)
+- Jessica Cherry: [Test Kubernetes cluster failures and experiments in your terminal](https://opensource.com/article/21/6/kubernetes-litmus-chaos)
+- Yang Chuansheng(KubeSphere): [KubeSphere 部署 Litmus 至 Kubernetes 开启混沌实验](https://kubesphere.io/zh/blogs/litmus-kubesphere/)
+- Saiyam Pathak(Civo): [Chaos Experiments on Kubernetes using Litmus to ensure your cluster is production ready](https://www.civo.com/learn/chaos-engineering-kubernetes-litmus)
+- Andreas Krivas(Container Solutions):[Comparing Chaos Engineering Tools for Kubernetes Workloads](https://blog.container-solutions.com/comparing-chaos-engineering-tools)
+- Akram Riahi(WeScale):[Chaos Engineering : Litmus sous tous les angles](https://blog.wescale.fr/2021/03/11/chaos-engineering-litmus-sous-tous-les-angles/)
+- Prashanto Priyanshu(LensKart):[Lenskart’s approach to Chaos Engineering-Part 2](https://blog.lenskart.com/lenskarts-approach-to-chaos-engineering-part-2-6290e4f3a74e)
+- DevsDay.ru(Russian):[LitmusChaos at Kubecon EU '21](https://devsday.ru/blog/details/40746)
+- Ryan Pei(Armory): [LitmusChaos in your Spinnaker Pipeline](https://www.armory.io/blog/litmuschaos-in-your-spinnaker-pipeline/)
+- David Gildeh(Zebrium): [Using Autonomous Monitoring with Litmus Chaos Engine on Kubernetes](https://www.zebrium.com/blog/using-autonomous-monitoring-with-litmus-chaos-engine-on-kubernetes)
+
 
 ## Adopters
 
 Check out the <a href="https://github.com/litmuschaos/litmus/blob/master/ADOPTERS.md" target="_blank">Adopters of LitmusChaos</a>
 
 (_Send a PR to the above page if you are using Litmus in your chaos engineering practice_)
-
-## Things to Consider
-
-Some of the considerations that need to be made with Litmus (as a chaos framework), are broadly listed here. Many of these are already being worked on
-as mentioned in the [ROADMAP](./ROADMAP.md). For details or limitations around specific experiments, refer to the respective [experiments docs](https://docs.litmuschaos.io/docs/pod-delete/).
-
-- Litmus chaos operator and the chaos experiments run as kubernetes resources in the cluster. In case of airgapped environments, the chaos custom resources
-  and images need to be hosted on premise.
-- When attempting to execute platform specific chaos experiments (like those on AWS, GCP cloud) the access details are passed via kubernetes secrets. Support
-  for other modes of secret management with Litmus is yet to be tested/implemented.
-- Some chaos experiments make use of the docker api from within the experiment pods, and thereby require the docker socket to be mounted. User discretion is
-  advised when allowing developers/devops admins/SREs access for running these experiments.
-- In (rare) cases where chaos experiments make use of privileged containers, the recommended security policies will be documented.
 
 ## License
 
@@ -78,18 +140,6 @@ Litmus is licensed under the Apache License, Version 2.0. See [LICENSE](./LICENS
 Litmus Chaos is part of the CNCF Projects.
 
 [![CNCF](https://github.com/cncf/artwork/blob/master/other/cncf/horizontal/color/cncf-color.png)](https://landscape.cncf.io/selected=litmus)
-
-## Community
-
-The Litmus community meets on the third wednesday of every month at 10:00PM IST/9.30 AM PST.
-
-Community Resources:
-
-- [Community Slack](https://slack.litmuschaos.io)
-- [Sync Up Meeting Link](https://zoom.us/j/91358162694)
-- [Sync Up Agenda & Meeting Notes](https://hackmd.io/a4Zu_sH4TZGeih-xCimi3Q)
-- [Youtube Channel (demos, meeting recordings, virtual meetups)](https://www.youtube.com/channel/UCa57PMqmz_j0wnteRa9nCaw)
-- [Release Tracker](https://github.com/litmuschaos/litmus/milestones)
 
 ## Important Links
 

@@ -15,14 +15,13 @@ import {
 import { EditableText, Search } from 'litmus-ui';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import Loader from '../../../../components/Loader';
 import Center from '../../../../containers/layouts/Center';
 import {
-  ALL_USERS,
   GET_PROJECT,
   LIST_PROJECTS,
   UPDATE_PROJECT_NAME,
 } from '../../../../graphql';
-import { UserInvite } from '../../../../models/graphql/invite';
 import {
   Member,
   Project,
@@ -95,8 +94,6 @@ const TeamingTab: React.FC = () => {
   const [accepted, setAccepted] = useState<Member[]>([]);
   const [notAccepted, setNotAccepted] = useState<Member[]>([]);
 
-  const [allUsers, setAllUsers] = useState<UserInvite[]>([]);
-
   const [activeTab, setActiveTab] = useState<number>(0);
 
   const handleChange = (event: React.ChangeEvent<{}>, actTab: number) => {
@@ -109,12 +106,7 @@ const TeamingTab: React.FC = () => {
   >(GET_PROJECT, {
     variables: { projectID },
     fetchPolicy: 'cache-and-network',
-  });
-
-  const { refetch: refetchAllUsers } = useQuery(ALL_USERS, {
-    skip: !dataB,
-    onCompleted: (data) => {
-      setAllUsers([...data.users]);
+    onCompleted: () => {
       setLoading(false);
       const memberList = dataB?.getProject.members ?? [];
       const acceptedUsers: Member[] = [];
@@ -133,7 +125,6 @@ const TeamingTab: React.FC = () => {
       setAccepted([...acceptedUsers]);
       setNotAccepted([...notAcceptedUsers]);
     },
-    fetchPolicy: 'cache-and-network',
   });
 
   // State for pagination
@@ -152,14 +143,9 @@ const TeamingTab: React.FC = () => {
   const acceptedFilteredData = !loading
     ? accepted &&
       accepted
-        .filter((dataRow: Member) => {
-          return allUsers
-            .filter((data) => {
-              return dataRow.user_id === data.id;
-            })[0]
-            .username.toLowerCase()
-            .includes(filters.search.toLowerCase());
-        })
+        .filter((dataRow) =>
+          dataRow.user_name.toLowerCase().includes(filters.search.toLowerCase())
+        )
         .filter((dataRow: Member) => {
           if (filters.role === 'all') return true;
           if (filters.role === 'Editor') return dataRow.role === 'Editor';
@@ -171,14 +157,9 @@ const TeamingTab: React.FC = () => {
   const notAcceptedFilteredData = !loading
     ? notAccepted &&
       notAccepted
-        .filter((dataRow: Member) => {
-          return allUsers
-            .filter((data) => {
-              return dataRow.user_id === data.id;
-            })[0]
-            .username.toLowerCase()
-            .includes(filters.search.toLowerCase());
-        })
+        .filter((dataRow) =>
+          dataRow.user_name.toLowerCase().includes(filters.search.toLowerCase())
+        )
         .filter((dataRow: Member) => {
           if (filters.role === 'all') return true;
           if (filters.role === 'Editor') return dataRow.role === 'Editor';
@@ -189,11 +170,9 @@ const TeamingTab: React.FC = () => {
 
   const [inviteNewOpen, setInviteNewOpen] = React.useState(false);
   const [deleteMemberOpen, setDeleteMemberOpen] = React.useState(false);
-  const [cancelInviteOpen, setCancelInviteOpen] = React.useState(false);
 
   function showModal() {
     refetchGetProject();
-    refetchAllUsers();
   }
 
   const [projectOwnerCount, setProjectOwnerCount] = useState<number>(0);
@@ -201,12 +180,12 @@ const TeamingTab: React.FC = () => {
   const [invitationsCount, setInvitationCount] = useState<number>(0);
   const [projects, setProjects] = useState<Project[]>([]);
   const { data: dataProject } = useQuery<Projects>(LIST_PROJECTS, {
+    fetchPolicy: 'cache-and-network',
     onCompleted: () => {
       if (dataProject?.listProjects) {
-        setProjects(dataProject?.listProjects);
+        setProjects(dataProject.listProjects);
       }
     },
-    fetchPolicy: 'cache-and-network',
   });
   useEffect(() => {
     let projectOwner = 0;
@@ -374,7 +353,6 @@ const TeamingTab: React.FC = () => {
                     <InviteNew
                       showModal={() => {
                         showModal();
-
                         setInviteNewOpen(false);
                       }}
                       handleOpen={() => setInviteNewOpen(true)}
@@ -441,10 +419,7 @@ const TeamingTab: React.FC = () => {
                   notAcceptedFilteredData={notAcceptedFilteredData}
                   showModal={() => {
                     showModal();
-                    setCancelInviteOpen(false);
                   }}
-                  handleOpen={() => setCancelInviteOpen(true)}
-                  open={cancelInviteOpen}
                 />
               </TabPanel>
               {/* user table */}
@@ -465,7 +440,11 @@ const TeamingTab: React.FC = () => {
           </div>
         </>
       ) : (
-        ''
+        <div style={{ height: '50vh' }}>
+          <Center>
+            <Loader />
+          </Center>
+        </div>
       )}
     </div>
   );

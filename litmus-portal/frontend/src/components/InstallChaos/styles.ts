@@ -5,7 +5,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     width: '95%',
     fontSize: '1.125rem',
     color: theme.palette.text.primary,
-    margin: theme.spacing(2, 0),
+    margin: theme.spacing(2, 2),
   },
 
   title: {
@@ -23,11 +23,12 @@ const useStyles = makeStyles((theme: Theme) => ({
 
   rowDiv: {
     display: 'flex',
-    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
-  copyBtnImg: {
-    paddingRight: '0.625rem',
+  spacing: {
+    padding: theme.spacing(0, 1),
   },
 
   linkBox: {

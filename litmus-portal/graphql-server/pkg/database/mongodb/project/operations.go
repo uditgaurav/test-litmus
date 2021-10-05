@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"log"
+	"strconv"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/litmuschaos/litmus/litmus-portal/graphql-server/graph/model"
 	"github.com/litmuschaos/litmus/litmus-portal/graphql-server/pkg/database/mongodb"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // CreateProject creates a new project for a user
@@ -29,7 +30,6 @@ func GetProject(ctx context.Context, query bson.D) (*Project, error) {
 	var project = new(Project)
 	result, err := mongodb.Operator.Get(ctx, mongodb.ProjectCollection, query)
 	if err != nil {
-		log.Print("Error getting project with query: ", query, "\nError message: ", err)
 		return nil, err
 	}
 	err = result.Decode(project)
@@ -41,18 +41,49 @@ func GetProject(ctx context.Context, query bson.D) (*Project, error) {
 	return project, err
 }
 
-// GetProjectsByUserID returns a project based on the userID
-func GetProjectsByUserID(ctx context.Context, userID string) ([]Project, error) {
+// GetProjects takes a query parameter to retrieve the projects that match query
+func GetProjects(ctx context.Context, query bson.D) ([]Project, error) {
+	results, err := mongodb.Operator.List(ctx, mongodb.ProjectCollection, query)
+	if err != nil {
+		return nil, err
+	}
+
 	var projects []Project
-	query := bson.D{
-		{"members", bson.D{
-			{"$elemMatch", bson.D{
-				{"user_id", userID},
-				{"invitation", bson.D{
-					{"$ne", DeclinedInvitation},
+	err = results.All(ctx, &projects)
+	if err != nil {
+		return nil, err
+	}
+
+	return projects, nil
+}
+
+// GetProjectsByUserID returns a project based on the userID
+func GetProjectsByUserID(ctx context.Context, userID string, isOwner bool) ([]Project, error) {
+	var projects []Project
+	query := bson.D{}
+
+	if isOwner == true {
+		query = bson.D{
+			{"members", bson.D{
+				{"$elemMatch", bson.D{
+					{"user_id", userID},
+					{"role", bson.D{
+						{"$eq", model.MemberRoleOwner},
+					}},
 				}},
-			}},
-		}}}
+			}}}
+	} else {
+		query = bson.D{
+			{"removed_at", ""},
+			{"members", bson.D{
+				{"$elemMatch", bson.D{
+					{"user_id", userID},
+					{"invitation", bson.D{
+						{"$ne", DeclinedInvitation},
+					}},
+				}},
+			}}}
+	}
 
 	result, err := mongodb.Operator.List(ctx, mongodb.ProjectCollection, query)
 	if err != nil {
@@ -141,7 +172,7 @@ func UpdateInvite(ctx context.Context, projectID, userID string, invitation Invi
 		update = bson.D{
 			{"$set", bson.D{
 				{"members.$[elem].invitation", invitation},
-				{"members.$[elem].joined_at", time.Now().Format(time.RFC1123Z)},
+				{"members.$[elem].joined_at", strconv.FormatInt(time.Now().Unix(), 10)},
 			}}}
 	case ExitedProject:
 		update = bson.D{
@@ -173,4 +204,14 @@ func UpdateProjectName(ctx context.Context, projectID string, projectName string
 	}
 
 	return nil
+}
+
+// GetAggregateProjects takes a mongo pipeline to retrieve the project details from the database
+func GetAggregateProjects(ctx context.Context, pipeline mongo.Pipeline, opts *options.AggregateOptions) (*mongo.Cursor, error) {
+	results, err := mongodb.Operator.Aggregate(ctx, mongodb.ProjectCollection, pipeline, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }

@@ -6,6 +6,17 @@ import { v4 as uuidv4 } from 'uuid';
 import { constants } from '../constants';
 import { ImageRegistryInfo } from '../models/redux/image_registry';
 
+const validateNamespace = (chaosEngine: any) => {
+  // Condition to check the namespace
+  if (typeof chaosEngine.metadata.namespace === 'object') {
+    // Removes any whitespace in '{{workflow.parameters.adminModeNamespace}}'
+    const namespace = Object.keys(chaosEngine.metadata.namespace)[0].replace(
+      /\s/g,
+      ''
+    );
+    chaosEngine.metadata.namespace = `{${namespace}}`;
+  }
+};
 const nameextractor = (val: any) => {
   const embeddedworkflowyamlstring = val;
   const parsedEmbeddedYaml = YAML.parse(embeddedworkflowyamlstring as string);
@@ -32,6 +43,7 @@ export const updateEngineName = (parsedYaml: any) => {
         if (template.inputs && template.inputs.artifacts) {
           template.inputs.artifacts.forEach((artifact: any) => {
             const chaosEngine = YAML.parse(artifact.raw.data);
+            validateNamespace(chaosEngine);
             // Condition to check for the kind as ChaosEngine
             if (chaosEngine.kind === 'ChaosEngine') {
               if (chaosEngine.metadata.generateName === undefined) {
@@ -42,14 +54,7 @@ export const updateEngineName = (parsedYaml: any) => {
               chaosEngine.metadata['labels'] = {
                 instance_id: uuidv4(),
               };
-              // Condition to check the namespace
-              if (typeof chaosEngine.metadata.namespace === 'object') {
-                // Removes any whitespace in '{{workflow.parameters.adminModeNamespace}}'
-                const namespace = Object.keys(
-                  chaosEngine.metadata.namespace
-                )[0].replace(/\s/g, '');
-                chaosEngine.metadata.namespace = `{${namespace}}`;
-              }
+              validateNamespace(chaosEngine);
 
               // Edge Case: Condition to check the appns
               // Required because while parsing the chaos engine
@@ -97,6 +102,7 @@ export const updateWorkflowNameLabel = (
         if (template.inputs && template.inputs.artifacts) {
           template.inputs.artifacts.forEach((artifact: any) => {
             const chaosEngine = YAML.parse(artifact.raw.data);
+            validateNamespace(chaosEngine);
             // Condition to check for the kind as ChaosEngine
             if (chaosEngine.kind === 'ChaosEngine') {
               if (chaosEngine.metadata.labels !== undefined) {
@@ -106,14 +112,8 @@ export const updateWorkflowNameLabel = (
                   workflow_name: workflowName,
                 };
               }
-              // Condition to check the namespace
-              if (typeof chaosEngine.metadata.namespace === 'object') {
-                // Removes any whitespace in '{{workflow.parameters.adminModeNamespace}}'
-                const namespace = Object.keys(
-                  chaosEngine.metadata.namespace
-                )[0].replace(/\s/g, '');
-                chaosEngine.metadata.namespace = `{${namespace}}`;
-              }
+
+              validateNamespace(chaosEngine);
 
               // Edge Case: Condition to check the appns
               // Required because while parsing the chaos engine
@@ -230,9 +230,8 @@ export const updateNamespace = (manifest: string, namespace: string) => {
     updatedManifest.spec.workflowSpec.arguments.parameters.forEach(
       (parameter: any, index: number) => {
         if (parameter.name === constants.adminMode) {
-          updatedManifest.spec.workflowSpec.arguments.parameters[
-            index
-          ].value = namespace;
+          updatedManifest.spec.workflowSpec.arguments.parameters[index].value =
+            namespace;
         }
       }
     );
@@ -290,50 +289,56 @@ export const updateManifestImage = (
   parsedYaml: any,
   registryData: ImageRegistryInfo
 ) => {
-  if (parsedYaml.spec !== undefined) {
-    if (parsedYaml.kind.toLowerCase() === 'workflow') {
-      if (registryData.image_registry_type.toLocaleLowerCase() === 'private') {
-        parsedYaml.spec['imagePullSecrets'] = [
-          {
-            name: registryData.secret_name,
-          },
-        ];
-      }
-      parsedYaml.spec.templates.forEach((template: any) => {
-        if (template.container) {
-          if (registryData.image_repo_name !== constants.litmus) {
-            const imageData = template.container.image.split('/');
-            const imageName = imageData[imageData.length - 1];
-            template.container.image = `${registryData.image_registry_name}/${registryData.image_repo_name}/${imageName}`;
-          } else {
-            const imageData = template.container.image.split('/');
-            const imageName = imageData[imageData.length - 1];
-            template.container.image = `${constants.litmus}/${imageName}`;
-          }
+  if (registryData.update_registry) {
+    if (parsedYaml.spec !== undefined) {
+      if (parsedYaml.kind.toLowerCase() === 'workflow') {
+        if (
+          registryData.image_registry_type.toLocaleLowerCase() === 'private'
+        ) {
+          parsedYaml.spec['imagePullSecrets'] = [
+            {
+              name: registryData.secret_name,
+            },
+          ];
         }
-      });
-    }
-    if (parsedYaml.kind.toLowerCase() === 'cronworkflow') {
-      if (registryData.image_registry_type.toLocaleLowerCase() === 'private') {
-        parsedYaml.spec.workflowSpec['imagePullSecrets'] = [
-          {
-            name: registryData.secret_name,
-          },
-        ];
-      }
-      parsedYaml.spec.workflowSpec.templates.forEach((template: any) => {
-        if (template.container) {
-          if (registryData.image_repo_name !== constants.litmus) {
-            const imageData = template.container.image.split('/');
-            const imageName = imageData[imageData.length - 1];
-            template.container.image = `${registryData.image_registry_name}/${registryData.image_repo_name}/${imageName}`;
-          } else {
-            const imageData = template.container.image.split('/');
-            const imageName = imageData[imageData.length - 1];
-            template.container.image = `${constants.litmus}/${imageName}`;
+        parsedYaml.spec.templates.forEach((template: any) => {
+          if (template.container) {
+            if (!registryData.is_default) {
+              const imageData = template.container.image.split('/');
+              const imageName = imageData[imageData.length - 1];
+              template.container.image = `${registryData.image_registry_name}/${registryData.image_repo_name}/${imageName}`;
+            } else {
+              const imageData = template.container.image.split('/');
+              const imageName = imageData[imageData.length - 1];
+              template.container.image = `${constants.litmus}/${imageName}`;
+            }
           }
+        });
+      }
+      if (parsedYaml.kind.toLowerCase() === 'cronworkflow') {
+        if (
+          registryData.image_registry_type.toLocaleLowerCase() === 'private'
+        ) {
+          parsedYaml.spec.workflowSpec['imagePullSecrets'] = [
+            {
+              name: registryData.secret_name,
+            },
+          ];
         }
-      });
+        parsedYaml.spec.workflowSpec.templates.forEach((template: any) => {
+          if (template.container) {
+            if (!registryData.is_default) {
+              const imageData = template.container.image.split('/');
+              const imageName = imageData[imageData.length - 1];
+              template.container.image = `${registryData.image_registry_name}/${registryData.image_repo_name}/${imageName}`;
+            } else {
+              const imageData = template.container.image.split('/');
+              const imageName = imageData[imageData.length - 1];
+              template.container.image = `${constants.litmus}/${imageName}`;
+            }
+          }
+        });
+      }
     }
   }
   return YAML.stringify(parsedYaml);

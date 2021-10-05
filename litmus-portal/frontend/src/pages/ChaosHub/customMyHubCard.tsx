@@ -104,6 +104,7 @@ const CustomMyHubCard: React.FC<customMyHubCardProp> = ({
                   keepMounted
                   open={open}
                   onClose={handleClose}
+                  data-cy="myHubOptions"
                 >
                   <MenuItem
                     data-cy="myHubRefresh"
@@ -137,7 +138,7 @@ const CustomMyHubCard: React.FC<customMyHubCardProp> = ({
                         alt="Edit"
                         className={classes.editImg}
                       />
-                      <Typography data-cy="viewHub">
+                      <Typography data-cy="editHub">
                         {t('myhub.edit')}
                       </Typography>
                     </div>
@@ -182,13 +183,18 @@ const CustomMyHubCard: React.FC<customMyHubCardProp> = ({
         <div className={classes.cardContent}>
           <img
             src={`./icons/${
-              hub.HubName === 'Chaos Hub'
+              hub.HubName === 'Litmus ChaosHub'
                 ? 'myhub-litmus.svg'
                 : 'my-hub-charts.svg'
             }`}
             alt="add-hub"
           />
-          <Typography variant="h6" align="center" className={classes.hubName}>
+          <Typography
+            data-cy="connectedMyHubName"
+            variant="h6"
+            align="center"
+            className={classes.hubName}
+          >
             <strong>{hub.HubName}</strong>/{hub.RepoBranch}
           </Typography>
           <Typography className={classes.totalExp} gutterBottom>

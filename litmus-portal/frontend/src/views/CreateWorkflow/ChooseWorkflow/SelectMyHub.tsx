@@ -17,7 +17,7 @@ const SelectMyHub = () => {
   const [availableHubs, setAvailableHubs] = useState<MyHubDetail[]>([]);
 
   // Get all MyHubs with status
-  const { data, loading } = useQuery<HubStatus>(GET_HUB_STATUS, {
+  const { data } = useQuery<HubStatus>(GET_HUB_STATUS, {
     variables: { data: selectedProjectID },
     fetchPolicy: 'cache-and-network',
   });
@@ -38,10 +38,33 @@ const SelectMyHub = () => {
   };
 
   useEffect(() => {
-    if (data?.getHubStatus.length) {
-      setAvailableHubs([...data.getHubStatus]);
+    if (data?.getHubStatus !== undefined) {
+      if (data.getHubStatus.length) {
+        const hubDetails: MyHubDetail[] = [];
+        data.getHubStatus.forEach((hub) => {
+          /**
+           * Push only available hubs
+           */
+          if (hub.IsAvailable) {
+            hubDetails.push({
+              id: hub.id,
+              HubName: hub.HubName,
+              RepoBranch: hub.RepoBranch,
+              RepoURL: hub.RepoURL,
+            });
+          }
+        });
+        setAvailableHubs(hubDetails);
+        data.getHubStatus.forEach((hubData) => {
+          if (hubData.HubName.toLowerCase() === 'litmus chaoshub') {
+            setSelectedHub('Litmus ChaosHub');
+            localforage.setItem('selectedHub', 'Litmus ChaosHub');
+            localforage.setItem('hasSetWorkflowData', false);
+          }
+        });
+      }
     }
-  }, [loading]);
+  }, [data]);
 
   const classes = useStyles();
   return (
@@ -52,15 +75,20 @@ const SelectMyHub = () => {
             {t('createWorkflow.chooseWorkflow.selectMyHub')}
           </InputLabel>
           <Select
+            data-cy="myHubDropDown"
             value={selectedHub}
             onChange={(e) => {
               handleMyHubChange(e);
             }}
-            label="Cluster Status"
+            label="Select ChaosHub"
             MenuProps={MenuProps}
           >
             {availableHubs.map((hubs) => (
-              <MenuItem key={hubs.HubName} value={hubs.HubName}>
+              <MenuItem
+                key={hubs.HubName}
+                data-cy="hubOption"
+                value={hubs.HubName}
+              >
                 {hubs.HubName}
               </MenuItem>
             ))}

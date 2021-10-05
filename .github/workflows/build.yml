@@ -5,6 +5,9 @@ on:
       - master
       - v*
 
+env:
+  DOCKER_BUILDKIT: 1 # Enable Docker_buildkit in all build jobs
+
 jobs:
   changes:
     runs-on: ubuntu-latest
@@ -14,7 +17,9 @@ jobs:
       graphql-server: ${{ steps.filter.outputs.graphql-server }}
       authentication: ${{ steps.filter.outputs.authentication }}
       event-tracker: ${{ steps.filter.outputs.event-tracker }}
+      upgrade-agent-cp: ${{ steps.filter.outputs.upgrade-agent-cp }}
       subscriber: ${{ steps.filter.outputs.subscriber }}
+      litmus-demo: ${{ steps.filter.outputs.litmus-demo }}
     steps:
       # For pull requests it's not necessary to checkout the code
       - uses: dorny/paths-filter@v2
@@ -29,16 +34,23 @@ jobs:
               - 'litmus-portal/authentication/**'
             event-tracker:
               - 'litmus-portal/cluster-agents/event-tracker/**'
+            upgrade-agent-cp:
+              - 'litmus-portal/upgrade-agents/control-plane/**'
             subscriber:
               - 'litmus-portal/cluster-agents/subscriber/**'
+            litmus-demo:
+            - 'demo/1.x/**'
 
   backend-checks:
     runs-on: ubuntu-latest
     needs: changes
-    if: needs.changes.outputs.graphql-server == 'true'  || needs.changes.outputs.authentication == 'true' || needs.changes.outputs.event-tracker == 'true' || needs.changes.outputs.subscriber == 'true'
+    if: needs.changes.outputs.graphql-server == 'true' || needs.changes.outputs.upgrade-agent-cp == 'true'  || needs.changes.outputs.authentication == 'true' || needs.changes.outputs.event-tracker == 'true' || needs.changes.outputs.subscriber == 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: "1.16" # By default, the go version is v1.15 in runner.
       - name: Check Golang imports order
         uses: Jerome1337/goimports-action@v1.0.3
         with:
@@ -121,6 +133,21 @@ jobs:
           cd litmus-portal/cluster-agents/event-tracker
           docker build . -f Dockerfile --build-arg TARGETARCH=amd64
 
+  docker-build-upgrade-agent-cp:
+    runs-on: ubuntu-latest
+    needs:
+      - backend-checks
+      - changes
+    if: ${{ needs.changes.outputs.upgrade-agent-cp == 'true' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build control plane upgrade agent docker image
+        shell: bash
+        run: |
+          cd litmus-portal/upgrade-agents/control-plane
+          docker build . -f Dockerfile --build-arg TARGETARCH=amd64
+
   docker-build-frontend:
     runs-on: ubuntu-latest
     needs:
@@ -135,3 +162,17 @@ jobs:
         run: |
           cd litmus-portal/frontend
           docker build . -f Dockerfile --build-arg TARGETARCH=amd64
+
+  docker-build-litmus-demo:
+    runs-on: ubuntu-latest
+    needs:
+      - changes
+    if: ${{ needs.changes.outputs.litmus-demo == 'true' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build frontend docker image
+        shell: bash
+        run: |
+          cd demo/1.x
+          docker build . -f Dockerfile

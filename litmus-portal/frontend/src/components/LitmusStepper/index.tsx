@@ -1,4 +1,11 @@
-import { Paper, Step, StepLabel, Stepper, Typography } from '@material-ui/core';
+import {
+  Paper,
+  Step,
+  StepLabel,
+  Stepper,
+  Tooltip,
+  Typography,
+} from '@material-ui/core';
 import clsx from 'clsx';
 import { ButtonFilled, ButtonOutlined } from 'litmus-ui';
 import React from 'react';
@@ -18,6 +25,7 @@ interface LitmusStepperProps {
   hideNext?: boolean;
   disableNext?: boolean;
   moreStepperActions?: React.ReactNode;
+  finishButtonText?: React.ReactNode;
 }
 
 const LitmusStepper: React.FC<LitmusStepperProps> = ({
@@ -30,6 +38,7 @@ const LitmusStepper: React.FC<LitmusStepperProps> = ({
   disableNext,
   moreStepperActions,
   children,
+  finishButtonText,
 }) => {
   const classes = useStyles();
   const { t } = useTranslation();
@@ -75,27 +84,44 @@ const LitmusStepper: React.FC<LitmusStepperProps> = ({
 
       {/* Stepper Actions */}
       <div className={classes.stepperActions}>
-        {activeStep > 0 && (
+        {activeStep === 2 ? (
+          <Tooltip
+            title="All selected Workflow Data will be lost"
+            placement="top"
+            leaveDelay={300}
+          >
+            <div>
+              <ButtonOutlined onClick={handleBack}>
+                <Typography>{t('workflowStepper.back')}</Typography>
+              </ButtonOutlined>
+            </div>
+          </Tooltip>
+        ) : activeStep > 0 ? (
           <ButtonOutlined onClick={handleBack}>
             <Typography>{t('workflowStepper.back')}</Typography>
           </ButtonOutlined>
-        )}
+        ) : null}
         {moreStepperActions}
         <div className={classes.endAction}>
           {activeStep !== steps.length - 1 ? (
             !hideNext && (
-              <ButtonFilled onClick={handleNext} disabled={disableNext}>
+              <ButtonFilled
+                onClick={handleNext}
+                disabled={disableNext ?? false}
+              >
                 <Typography>{t('workflowStepper.next')}</Typography>
               </ButtonFilled>
             )
           ) : loader ? (
             <ButtonFilled disabled onClick={handleNext}>
-              {t('workflowStepper.finish')}{' '}
+              {finishButtonText || t('workflowStepper.finish')}
               <span style={{ marginLeft: '0.5rem' }} /> <Loader size={20} />
             </ButtonFilled>
           ) : (
-            <ButtonFilled onClick={handleNext} disabled={disableNext}>
-              <Typography>{t('workflowStepper.finish')}</Typography>
+            <ButtonFilled onClick={handleNext} disabled={disableNext ?? false}>
+              {finishButtonText || (
+                <Typography>{t('workflowStepper.finish')}</Typography>
+              )}
             </ButtonFilled>
           )}
         </div>
